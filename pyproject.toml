@@ -1,0 +1,28 @@
+[project]
+name = "alphafold3_input"
+version = "0.1.0"
+description = "AlphaFold 3 input schema models."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.12.5",
+    "rdkit>=2025.9.4",
+]
+
+[project.urls]
+Repository = "https://github.com/igor-koop/alphafold3_input"
+Issues = "https://github.com/igor-koop/alphafold3_input/issues"
+Documentation = "https://github.com/igor-koop/alphafold3_input#readme"
+
+[build-system]
+requires = ["uv_build>=0.8.11,<0.9.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-root = "src"
+module-name = "alphafold3_input"
+
+[tool.ruff.lint]
+select = ["ALL"]
+fixable = ["ALL"]
+ignore = ["TC001", "ANN401"]
