@@ -508,7 +508,7 @@ class Job(BaseModel):
             if isinstance(entity, Protein):
                 if isinstance(entity.alignment, Path):
                     required = max(required, Version.II)
-                if any(
+                if entity.templates and any(
                     isinstance(template.structure, Path)
                     for template in entity.templates
                 ):
