@@ -13,6 +13,7 @@ from collections.abc import Sequence  # noqa: TC003
 from typing import Annotated, Any, Self
 
 from pydantic import (
+    AliasPath,
     BaseModel,
     ConfigDict,
     Field,
@@ -95,7 +96,7 @@ class DNA(BaseModel):
             title="id",
             description="DNA chain identifier(s).",
             min_length=1,
-            validation_alias="id",
+            validation_alias=AliasPath("dna", "id"),
             serialization_alias="id",
         ),
     ] = None
@@ -105,7 +106,7 @@ class DNA(BaseModel):
         Field(
             title="description",
             description="Free-text DNA chain description.",
-            validation_alias="description",
+            validation_alias=AliasPath("dna", "description"),
             serialization_alias="description",
         ),
     ] = None
@@ -116,7 +117,7 @@ class DNA(BaseModel):
             title="sequence",
             description="DNA chain nucleotide sequence.",
             min_length=1,
-            validation_alias="sequence",
+            validation_alias=AliasPath("dna", "sequence"),
             serialization_alias="sequence",
         ),
     ]
@@ -126,7 +127,7 @@ class DNA(BaseModel):
         Field(
             title="modifications",
             description="DNA chain residue modifications.",
-            validation_alias="modifications",
+            validation_alias=AliasPath("dna", "modifications"),
             serialization_alias="modifications",
         ),
     ] = Field(default_factory=tuple)
