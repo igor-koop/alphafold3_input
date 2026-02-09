@@ -24,7 +24,9 @@ from pydantic import (
     ConfigDict,
     Field,
     ModelWrapValidatorHandler,
+    SerializerFunctionWrapHandler,
     computed_field,
+    field_serializer,
     field_validator,
     model_validator,
 )
@@ -177,7 +179,11 @@ class Job(BaseModel):
     ] = Version.IV
 
     seeds: Annotated[
-        int | Sequence[int],
+        Annotated[int, Field(ge=1)]
+        | Annotated[
+            Sequence[Annotated[int, Field(ge=1, le=(1 << 32) - 1)]],
+            Field(min_length=1),
+        ],
         Field(
             title="seeds",
             description="Random seeds or their total number.",
@@ -302,6 +308,79 @@ class Job(BaseModel):
             for entity in self.entities[-len(entities) :]
             if entity.id
         )
+
+    @classmethod
+    def load(
+        cls: type[Self],
+        path: Path,
+        *,
+        encoding: str = "utf-8",
+    ) -> Self:
+        """Load a `Job` from an AlphaFold 3 input file.
+
+        Reads the file at `path` as text and validates it against the `Job`
+        model using Pydantic's JSON parsing and validation.
+
+        Args:
+            path (Path): Path to the JSON input file.
+            encoding (str): Text encoding used to read the file.
+
+        Returns:
+            out (Self): Parsed and validated `Job` instance.
+
+        """
+        return cls.model_validate_json(
+            Path(path).read_text(encoding=encoding),
+        )
+
+    def export(self: Self) -> dict[str, object]:
+        """Export the `Job` to an AlphaFold 3 input mapping.
+
+        Serializes the `Job` as a mapping for AlphaFold 3 input.
+
+        Returns:
+            out (dict[str, object]): AlphaFold 3 input mapping.
+
+        """
+        return self.model_dump(
+            by_alias=True,
+            exclude_none=True,
+        )
+
+    def save(
+        self: Self,
+        path: Path,
+        *,
+        indent: int | None = 2,
+        ensure_ascii: bool = False,
+        encoding: str = "utf-8",
+    ) -> Path:
+        """Save the `Job` to an AlphaFold 3 input file.
+
+        Serializes the `Job` to `path` as a JSON file for AlphaFold 3 input.
+
+        Args:
+            path (Path): Destination path for the JSON file.
+            indent (int | None): JSON indentation level.
+            ensure_ascii (bool): Whether to escape non-ASCII characters in the
+                JSON output.
+            encoding (str): Text encoding used to write the file.
+
+        Returns:
+            out (Path): The resolved path that was written.
+
+        """
+        file = Path(path)
+        file.write_text(
+            self.model_dump_json(
+                by_alias=True,
+                exclude_none=True,
+                indent=indent,
+                ensure_ascii=ensure_ascii,
+            ),
+            encoding=encoding,
+        )
+        return file
 
     @model_validator(mode="wrap")
     @classmethod
@@ -445,3 +524,28 @@ class Job(BaseModel):
             raise ValueError(msg)
 
         return self
+
+    @field_serializer("number", mode="wrap")
+    def __expand_seeds(
+        self: Self,
+        value: int | Sequence[int],
+        handler: SerializerFunctionWrapHandler,
+    ) -> Sequence[int]:
+        """Expand `seeds` into a tuple of explicit positive 32-bit seeds.
+
+        When `seeds` is an integer count, it is expanded at serialization time
+        into a tuple of `n` pseudo-random 32-bit seeds. When `seeds` is already
+        a sequence, it is forwarded unchanged.
+
+        Args:
+            value (int | Sequence[int]): Random seeds or their total number.
+            handler (SerializerFunctionWrapHandler): Pydantic serializer
+                wrapper.
+
+        Returns:
+            Sequence[int]: Model seeds.
+
+        """
+        if isinstance(value, int):
+            value = tuple(random.getrandbits(32) or 1 for _ in range(value))
+        return handler(value)
