@@ -15,6 +15,7 @@ from typing import Annotated, Any, Self
 
 from pydantic import (
     AliasChoices,
+    AliasPath,
     BaseModel,
     ConfigDict,
     Field,
@@ -135,7 +136,7 @@ class Protein(BaseModel):
             title="id",
             description="Protein chain identifier(s).",
             min_length=1,
-            validation_alias="id",
+            validation_alias=AliasPath("protein", "id"),
             serialization_alias="id",
         ),
     ] = None
@@ -145,7 +146,7 @@ class Protein(BaseModel):
         Field(
             title="description",
             description="Free-text protein chain description.",
-            validation_alias="description",
+            validation_alias=AliasPath("protein", "description"),
             serialization_alias="description",
         ),
     ] = None
@@ -156,7 +157,7 @@ class Protein(BaseModel):
             title="sequence",
             description="Protein chain amino acid sequence.",
             min_length=1,
-            validation_alias="sequence",
+            validation_alias=AliasPath("protein", "sequence"),
             serialization_alias="sequence",
         ),
     ]
@@ -166,7 +167,7 @@ class Protein(BaseModel):
         Field(
             title="modifications",
             description="Protein chain residue modifications.",
-            validation_alias="modifications",
+            validation_alias=AliasPath("protein", "modifications"),
             serialization_alias="modifications",
         ),
     ] = Field(default_factory=tuple)
@@ -176,7 +177,10 @@ class Protein(BaseModel):
         Field(
             title="alignment",
             description="Multiple sequence alignment for protein chain.",
-            validation_alias=AliasChoices("unpairedMsa", "unpairedMsaPath"),
+            validation_alias=AliasChoices(
+                AliasPath("protein", "unpairedMsa"),
+                AliasPath("protein", "unpairedMsaPath"),
+            ),
             exclude=True,
         ),
     ] = None
@@ -186,7 +190,7 @@ class Protein(BaseModel):
         Field(
             title="templates",
             description="Structural templates for protein chain.",
-            validation_alias="templates",
+            validation_alias=AliasPath("protein", "templates"),
             serialization_alias="templates",
         ),
     ] = Field(default_factory=tuple)

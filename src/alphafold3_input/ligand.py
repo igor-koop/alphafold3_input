@@ -15,6 +15,7 @@ from typing import Annotated, Any, Self
 
 from pydantic import (
     AliasChoices,
+    AliasPath,
     BaseModel,
     ConfigDict,
     Field,
@@ -102,7 +103,7 @@ class Ligand(BaseModel):
             title="id",
             description="Ligand identifier(s).",
             min_length=1,
-            validation_alias="id",
+            validation_alias=AliasPath("ligand", "id"),
             serialization_alias="id",
         ),
     ] = None
@@ -112,7 +113,7 @@ class Ligand(BaseModel):
         Field(
             title="description",
             description="Free-text ligand description.",
-            validation_alias="description",
+            validation_alias=AliasPath("ligand", "description"),
             serialization_alias="description",
         ),
     ] = None
@@ -128,7 +129,10 @@ class Ligand(BaseModel):
         Field(
             title="definition",
             description="Ligand definition as CCD code(s) or SMILES.",
-            validation_alias=AliasChoices("ccdCodes", "smiles"),
+            validation_alias=AliasChoices(
+                AliasPath("ligand", "ccdCodes"),
+                AliasPath("ligand", "smiles"),
+            ),
             exclude=True,
         ),
     ]

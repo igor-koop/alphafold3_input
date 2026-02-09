@@ -15,6 +15,7 @@ from typing import Annotated, Any, Self
 
 from pydantic import (
     AliasChoices,
+    AliasPath,
     BaseModel,
     ConfigDict,
     Field,
@@ -114,7 +115,7 @@ class RNA(BaseModel):
             title="id",
             description="RNA chain identifier(s).",
             min_length=1,
-            validation_alias="id",
+            validation_alias=AliasPath("rna", "id"),
             serialization_alias="id",
         ),
     ] = None
@@ -135,7 +136,7 @@ class RNA(BaseModel):
             title="sequence",
             description="RNA chain nucleotide sequence.",
             min_length=1,
-            validation_alias="sequence",
+            validation_alias=AliasPath("rna", "sequence"),
             serialization_alias="sequence",
         ),
     ]
@@ -145,7 +146,7 @@ class RNA(BaseModel):
         Field(
             title="modifications",
             description="RNA chain residue modifications.",
-            validation_alias="modifications",
+            validation_alias=AliasPath("rna", "modifications"),
             serialization_alias="modifications",
         ),
     ] = Field(default_factory=tuple)
@@ -155,7 +156,10 @@ class RNA(BaseModel):
         Field(
             title="alignment",
             description="Multiple sequence alignment for RNA chain.",
-            validation_alias=AliasChoices("unpairedMsa", "unpairedMsaPath"),
+            validation_alias=AliasChoices(
+                AliasPath("rna", "unpairedMsa"),
+                AliasPath("rna", "unpairedMsaPath"),
+            ),
             exclude=True,
         ),
     ] = None
