@@ -1,4 +1,4 @@
-"""Metadata for ...
+"""Metadata for AlphaFold 3 input models.
 
 This submodule defines and exposes package metadata such as the version,
 repository URL, and documentation URL. This information is extracted from the
