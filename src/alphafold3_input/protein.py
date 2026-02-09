@@ -67,7 +67,8 @@ class Protein(BaseModel):
             post-translational modifications.
         alignment (str | Path | None): Multiple sequence alignment for protein
             chain.
-        templates (Sequence[Template]): Structural templates for protein chain.
+        templates (Sequence[Template] | None): Structural templates for protein
+            chain.
         copies (int): Number of protein chain copies.
 
     Examples:
@@ -188,14 +189,14 @@ class Protein(BaseModel):
     ] = None
 
     templates: Annotated[
-        Sequence[Template],
+        Sequence[Template] | None,
         Field(
             title="templates",
             description="Structural templates for protein chain.",
             validation_alias=AliasPath("protein", "templates"),
             serialization_alias="templates",
         ),
-    ] = Field(default_factory=tuple)
+    ] = None
 
     copies: Annotated[
         int,
