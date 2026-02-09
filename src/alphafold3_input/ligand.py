@@ -10,7 +10,7 @@ Exports:
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Sequence  # noqa: TC003
 from typing import Annotated, Self
 
 from pydantic import (
@@ -166,7 +166,7 @@ class Ligand(BaseModel):
 
         """
         return (
-            self.definition if isinstance(self.definition, Sequence) else None
+            self.definition if not isinstance(self.definition, str) else None
         )
 
     @model_validator(mode="after")
