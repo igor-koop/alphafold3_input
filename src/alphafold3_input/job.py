@@ -332,13 +332,13 @@ class Job(BaseModel):
             Path(path).read_text(encoding=encoding),
         )
 
-    def export(self: Self) -> dict[str, object]:
+    def export(self: Self) -> dict[str, Any]:
         """Export the `Job` to an AlphaFold 3 input mapping.
 
         Serializes the `Job` as a mapping for AlphaFold 3 input.
 
         Returns:
-            out (dict[str, object]): AlphaFold 3 input mapping.
+            out (dict[str, Any]): AlphaFold 3 input mapping.
 
         """
         return self.model_dump(

@@ -11,16 +11,18 @@ Exports:
 from __future__ import annotations
 
 from collections.abc import Sequence  # noqa: TC003
-from typing import Annotated, Self
+from typing import Annotated, Any, Self
 
 from pydantic import (
     AliasChoices,
     BaseModel,
     ConfigDict,
     Field,
+    SerializerFunctionWrapHandler,
     StringConstraints,
     computed_field,
     field_validator,
+    model_serializer,
     model_validator,
 )
 from rdkit import Chem
@@ -261,3 +263,17 @@ class Ligand(BaseModel):
             raise ValueError(msg)
 
         return value
+
+    @model_serializer(mode="wrap")
+    def __wrapped_serialization(
+        self: Self,
+        handler: SerializerFunctionWrapHandler,
+    ) -> dict[str, Any]:
+        """Serialize the entity using the AlphaFold 3 wrapped representation.
+
+        Returns:
+            out (dict[str, Any]): Wrapped entity mapping suitable for the
+                AlphaFold 3 input format.
+
+        """
+        return {self.__class__.__name__.lower(): handler(self)}

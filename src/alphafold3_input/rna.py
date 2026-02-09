@@ -19,9 +19,11 @@ from pydantic import (
     ConfigDict,
     Field,
     ModelWrapValidatorHandler,
+    SerializerFunctionWrapHandler,
     StringConstraints,
     computed_field,
     field_validator,
+    model_serializer,
     model_validator,
 )
 
@@ -341,3 +343,17 @@ class RNA(BaseModel):
 
         object.__setattr__(self, "copies", n)
         return self
+
+    @model_serializer(mode="wrap")
+    def __wrapped_serialization(
+        self: Self,
+        handler: SerializerFunctionWrapHandler,
+    ) -> dict[str, Any]:
+        """Serialize the entity using the AlphaFold 3 wrapped representation.
+
+        Returns:
+            out (dict[str, Any]): Wrapped entity mapping suitable for the
+                AlphaFold 3 input format.
+
+        """
+        return {self.__class__.__name__.lower(): handler(self)}
