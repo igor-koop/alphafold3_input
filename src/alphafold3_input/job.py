@@ -24,7 +24,6 @@ from pydantic import (
     ConfigDict,
     Field,
     ModelWrapValidatorHandler,
-    SerializerFunctionWrapHandler,
     computed_field,
     field_serializer,
     field_validator,
@@ -525,22 +524,19 @@ class Job(BaseModel):
 
         return self
 
-    @field_serializer("number", mode="wrap")
+    @field_serializer("seeds", mode="plain")
     def __expand_seeds(
         self: Self,
         value: int | Sequence[int],
-        handler: SerializerFunctionWrapHandler,
     ) -> Sequence[int]:
         """Expand `seeds` into a tuple of explicit positive 32-bit seeds.
 
         When `seeds` is an integer count, it is expanded at serialization time
         into a tuple of `n` pseudo-random 32-bit seeds. When `seeds` is already
-        a sequence, it is forwarded unchanged.
+        a sequence, it is serialized unchanged.
 
         Args:
             value (int | Sequence[int]): Random seeds or their total number.
-            handler (SerializerFunctionWrapHandler): Pydantic serializer
-                wrapper.
 
         Returns:
             Sequence[int]: Model seeds.
@@ -548,4 +544,4 @@ class Job(BaseModel):
         """
         if isinstance(value, int):
             value = tuple(random.getrandbits(32) or 1 for _ in range(value))
-        return handler(value)
+        return value
