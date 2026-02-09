@@ -100,7 +100,7 @@ class Job(BaseModel):
         seeds (int | Sequence[int]): Random seeds or their total number.
         entities (Sequence[Protein | RNA | DNA | Ligand]): Entities included in
             the job.
-        bonds (Sequence[Bond]): Covalent bonds between atom pairs.
+        bonds (Sequence[Bond] | None): Covalent bonds between atom pairs.
         ccd (str | Path | None): Custom chemical components dictionary.
 
     Examples:
@@ -202,14 +202,14 @@ class Job(BaseModel):
     ] = Field(default_factory=tuple)
 
     bonds: Annotated[
-        Sequence[Bond],
+        Sequence[Bond] | None,
         Field(
             title="bonds",
             description="Covalent bonds between atom pairs.",
             validation_alias="bondedAtomPairs",
             serialization_alias="bondedAtomPairs",
         ),
-    ] = Field(default_factory=tuple)
+    ] = None
 
     ccd: Annotated[
         str | Path | None,

@@ -54,7 +54,7 @@ class Ligand(BaseModel):
 
 
     Attributes:
-        id (Sequence[stt] | None): Ligand identifier(s).
+        id (str | Sequence[str] | None): Ligand identifier(s).
         description (str | None): Free-text ligand description.
         definition (str | Sequence[str]): Ligand definition as SMILES or CCD
             code(s).
@@ -98,7 +98,9 @@ class Ligand(BaseModel):
     )
 
     id: Annotated[
-        Sequence[Annotated[str, StringConstraints(pattern="^[A-Z]+$")]] | None,
+        Annotated[str, StringConstraints(pattern="^[A-Z]+$")]
+        | Sequence[Annotated[str, StringConstraints(pattern="^[A-Z]+$")]]
+        | None,
         Field(
             title="id",
             description="Ligand identifier(s).",
@@ -194,7 +196,7 @@ class Ligand(BaseModel):
         if self.id is None:
             return self
 
-        n: int = len(self.id)
+        n: int = len(self.id) if not isinstance(self.id, str) else 1
 
         if "copies" in self.model_fields_set and self.copies != n:
             msg: str = (

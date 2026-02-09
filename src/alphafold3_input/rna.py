@@ -54,7 +54,7 @@ class RNA(BaseModel):
     version 4.
 
     Attributes:
-        id (Sequence[str] | None): RNA chain identifier(s).
+        id (str | Sequence[str] | None): RNA chain identifier(s).
         description (str | None): Free-text RNA chain description.
         sequence (str): RNA chain nucleotide sequence.
         modifications (Sequence[Modification]): RNA chain residue
@@ -110,7 +110,9 @@ class RNA(BaseModel):
     )
 
     id: Annotated[
-        Sequence[Annotated[str, StringConstraints(pattern="^[A-Z]+$")]] | None,
+        Annotated[str, StringConstraints(pattern="^[A-Z]+$")]
+        | Sequence[Annotated[str, StringConstraints(pattern="^[A-Z]+$")]]
+        | None,
         Field(
             title="id",
             description="RNA chain identifier(s).",
@@ -336,7 +338,7 @@ class RNA(BaseModel):
         if self.id is None:
             return self
 
-        n: int = len(self.id)
+        n: int = len(self.id) if not isinstance(self.id, str) else 1
 
         if "copies" in self.model_fields_set and self.copies != n:
             msg: str = (

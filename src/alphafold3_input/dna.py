@@ -46,7 +46,7 @@ class DNA(BaseModel):
     is supported only when `Job.version` is set to input format version 4.
 
     Attributes:
-        id (Sequence[str] | None): DNA chain identifier(s).
+        id (str | Sequence[str] | None): DNA chain identifier(s).
         description (str | None): Free-text DNA chain description.
         sequence (str): DNA chain nucleotide sequence.
         modifications (Sequence[Modification]): DNA chain residue
@@ -91,7 +91,9 @@ class DNA(BaseModel):
     )
 
     id: Annotated[
-        Sequence[Annotated[str, StringConstraints(pattern="^[A-Z]+$")]] | None,
+        Annotated[str, StringConstraints(pattern="^[A-Z]+$")]
+        | Sequence[Annotated[str, StringConstraints(pattern="^[A-Z]+$")]]
+        | None,
         Field(
             title="id",
             description="DNA chain identifier(s).",
@@ -248,7 +250,7 @@ class DNA(BaseModel):
         if self.id is None:
             return self
 
-        n: int = len(self.id)
+        n: int = len(self.id) if not isinstance(self.id, str) else 1
 
         if "copies" in self.model_fields_set and self.copies != n:
             msg: str = (

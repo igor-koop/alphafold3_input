@@ -60,7 +60,7 @@ class Protein(BaseModel):
     version 4.
 
     Attributes:
-        id (Sequence[str] | None): Protein chain identifier(s).
+        id (str | Sequence[str] | None): Protein chain identifier(s).
         description (str | None): Free-text protein chain description.
         sequence (str): Protein chain amino acid sequence.
         modifications (Sequence[Modification]): Protein chain
@@ -131,7 +131,9 @@ class Protein(BaseModel):
     )
 
     id: Annotated[
-        Sequence[Annotated[str, StringConstraints(pattern="^[A-Z]+$")]] | None,
+        Annotated[str, StringConstraints(pattern="^[A-Z]+$")]
+        | Sequence[Annotated[str, StringConstraints(pattern="^[A-Z]+$")]]
+        | None,
         Field(
             title="id",
             description="Protein chain identifier(s).",
@@ -380,7 +382,7 @@ class Protein(BaseModel):
         if self.id is None:
             return self
 
-        n: int = len(self.id)
+        n: int = len(self.id) if not isinstance(self.id, str) else 1
 
         if "copies" in self.model_fields_set and self.copies != n:
             msg: str = (
