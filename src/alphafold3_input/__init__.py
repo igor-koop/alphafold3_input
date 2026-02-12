@@ -8,6 +8,8 @@ Exports:
     Modification, Entity: Residue modification model and its entity-scope enum.
     Template: Structural template specification for proteins.
     Job, Dialect, Version: Top-level job model and input format enums.
+    trace, reindex, realign: A3M/FASTA utilities for variant liftover and
+        template/alignment coordinate updates.
 """
 
 from .bond import Atom, Bond
@@ -18,6 +20,7 @@ from .modification import Entity, Modification
 from .protein import Protein
 from .rna import RNA
 from .template import Template
+from .utils import realign, reindex, trace
 
 __all__: list[str] = [
     "DNA",
@@ -32,4 +35,7 @@ __all__: list[str] = [
     "Protein",
     "Template",
     "Version",
+    "realign",
+    "reindex",
+    "trace",
 ]
