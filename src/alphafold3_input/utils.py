@@ -1,6 +1,6 @@
 """Shared utilities.
 
-This submodule defines ..., alignment utilities for computing sequence variant
+This submodule defines TODO, alignment utilities for computing sequence variant
 liftover, redindexing of templates, and realignment of sequence alignments, as
 well as provides bijective base-26 conversion utilities for entity identifiers.
 
@@ -9,8 +9,8 @@ Exports:
         identifier.
     base26_decoder: Decode a bijective base-26 label back into its 1-based
         integer index.
-    ccd: ...
-    component: ...
+    ccd: TODO.
+    component: TODO.
     realign: Apply an operation trace to rewrite an A3M alignment into the new
         query coordinate system.
     reindex: Update template residue index mappings by lifting reference

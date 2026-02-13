@@ -10,6 +10,7 @@ Exports:
     Job, Dialect, Version: Top-level job model and input format enums.
     trace, reindex, realign: A3M/FASTA utilities for variant liftover and
         template/alignment coordinate updates.
+    ccd, component: TODO.
 """
 
 from .bond import Atom, Bond
@@ -20,7 +21,7 @@ from .modification import Entity, Modification
 from .protein import Protein
 from .rna import RNA
 from .template import Template
-from .utils import realign, reindex, trace
+from .utils import ccd, component, realign, reindex, trace
 
 __all__: list[str] = [
     "DNA",
@@ -35,6 +36,8 @@ __all__: list[str] = [
     "Protein",
     "Template",
     "Version",
+    "ccd",
+    "component",
     "realign",
     "reindex",
     "trace",
