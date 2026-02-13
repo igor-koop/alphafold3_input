@@ -1,6 +1,6 @@
 """Shared utilities.
 
-This submodule defines alignment utilities for computing sequence variant
+This submodule defines ..., alignment utilities for computing sequence variant
 liftover, redindexing of templates, and realignment of sequence alignments, as
 well as provides bijective base-26 conversion utilities for entity identifiers.
 
@@ -9,6 +9,8 @@ Exports:
         identifier.
     base26_decoder: Decode a bijective base-26 label back into its 1-based
         integer index.
+    ccd: ...
+    component: ...
     realign: Apply an operation trace to rewrite an A3M alignment into the new
         query coordinate system.
     reindex: Update template residue index mappings by lifting reference
@@ -20,25 +22,33 @@ Exports:
 from __future__ import annotations
 
 import re
+from collections import defaultdict
 from enum import StrEnum
+from os import linesep
 from typing import TYPE_CHECKING, Any
 
 from numpy import array, dtype, int32, ndarray
+from rdkit import Chem
+from rdkit.Chem import AllChem, Descriptors, rdDistGeom, rdMolDescriptors
 
 from .template import Template
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Sequence
+    from collections.abc import Generator, Iterable, Mapping, Sequence
+
+    import numpy as np
 
 __all__: list[str] = [
     "base26_decoder",
     "base26_encoder",
+    "ccd",
+    "component",
     "realign",
     "reindex",
     "trace",
 ]
 
-PATTERNS: dict[str, tuple[re.Pattern[str], ...]] = {
+PATTERNS: Mapping[str, tuple[re.Pattern[str], ...]] = {
     #     """Validation patterns for supported sequence formats.
     #
     #     Keys:
@@ -203,7 +213,7 @@ def realign(  # noqa: C901
     """
     out: list[str] = []
 
-    lines = iter(alignment.splitlines())
+    lines: Iterable[str] = iter(alignment.splitlines())
     for header, sequence in zip(lines, lines, strict=True):
         if not header.startswith(">"):
             msg: str = (
@@ -263,7 +273,143 @@ def realign(  # noqa: C901
         out.append(header)
         out.append("".join(seq))
 
-    return "\n".join(out)
+    return linesep.join(out)
+
+
+def component(
+    smiles: str,
+    code: str,
+    name: str,
+) -> Chem.Mol:
+    """TODO."""
+    molecule: Chem.Mol | None = Chem.MolFromSmiles(
+        SMILES=smiles,
+        sanitize=False,
+    )
+
+    if molecule is None:
+        msg: str = "SMILES is not syntactically valid."
+        raise ValueError(msg)
+
+    try:
+        Chem.SanitizeMol(mol=molecule)
+    except Exception as e:
+        msg: str = "SMILES does not describe a chemically valid structure."
+        raise ValueError(msg) from e
+
+    try:
+        Chem.Kekulize(mol=molecule)
+    except Exception as e:
+        msg: str = "SMILES could not be converted into kekulized form."
+        raise ValueError(msg) from e
+
+    molecule: Chem.Mol = Chem.AddHs(mol=molecule)
+
+    parameters: rdDistGeom.EmbedParameters = AllChem.ETKDGv3()  # ty:ignore[unresolved-attribute]
+    parameters.maxIterations = 500
+    parameters.useRandomCoords = True
+
+    cid: int = AllChem.EmbedMolecule(molecule, parameters)  # ty:ignore[unresolved-attribute]
+    if cid < 0:
+        msg: str = "Conformer generation from SMILES failed."
+        raise RuntimeError(msg)
+
+    AllChem.UFFOptimizeMolecule(molecule, maxIters=500)  # ty:ignore[unresolved-attribute]
+
+    atoms: defaultdict[str, int] = defaultdict(lambda: 0)
+
+    for atom in molecule.GetAtoms():
+        element: str = atom.GetSymbol().upper()
+        atoms[element] += 1
+        atom.SetProp("atom_name", f"{element}{atoms[element]}")
+
+    molecule.SetProp("comp_id", code)
+    molecule.SetProp("comp_name", name)
+
+    return molecule
+
+
+def ccd(  # noqa: C901, PLR0912
+    *components: Chem.Mol,
+) -> Generator[str]:
+    """TODO."""
+    for component in components:
+        info: dict[str, str] = {}
+        atoms: defaultdict[str, list[str]] = defaultdict(list)
+        bonds: defaultdict[str, list[str]] = defaultdict(list)
+
+        coordinates: np.ndarray = component.GetConformer(0).GetPositions()
+
+        if coordinates is None:
+            msg: str = ""
+            raise ValueError
+
+        info["id"] = component.GetProp("comp_id")
+        info["name"] = component.GetProp("comp_name")
+        info["type"] = "NON-POLYMER"
+        info["formula"] = rdMolDescriptors.CalcMolFormula(component)
+        info["formula_weight"] = f"{Descriptors.MolWt(component):.3f}"  # ty:ignore[unresolved-attribute]
+        info["mon_nstd_parent_comp_id"] = "?"
+        info["pdbx_synonyms"] = "?"
+
+        for atom in component.GetAtoms():
+            atoms["comp_id"].append(info["id"])
+            atoms["atom_id"].append(atom.GetProp("atom_name"))
+            atoms["type_symbol"].append(atom.GetSymbol().upper())
+            atoms["charge"].append(str(int(atom.GetFormalCharge())))
+
+        for idx, dimension in enumerate(("x", "y", "z")):
+            atoms[f"pdbx_model_Cartn_{dimension}_ideal"] = [
+                f"{coordinate:.3f}" for coordinate in coordinates[:, idx]
+            ]
+
+        for bond in component.GetBonds():
+            bonds["comp_id"].append(info["id"])
+            bonds["atom_id_1"].append(bond.GetBeginAtom().GetProp("atom_name"))
+            bonds["atom_id_2"].append(bond.GetEndAtom().GetProp("atom_name"))
+
+            match bond.GetBondType():
+                case Chem.BondType.DATIVE | Chem.BondType.SINGLE:
+                    bonds["value_order"].append("SING")
+                case Chem.BondType.DOUBLE:
+                    bonds["value_order"].append("DOUB")
+                case Chem.BondType.TRIPLE:
+                    bonds["value_order"].append("TRIP")
+                case _:
+                    msg: str = ""
+                    raise TypeError(msg)
+
+            match bond.GetStereo():
+                case Chem.BondStereo.STEREONONE:
+                    bonds["pdbx_stereo_config"].append("N")
+                case Chem.BondStereo.STEREOE | Chem.BondStereo.STEREOTRANS:
+                    bonds["pdbx_stereo_config"].append("E")
+                case Chem.BondStereo.STEREOZ | Chem.BondStereo.STEREOCIS:
+                    bonds["pdbx_stereo_config"].append("Z")
+                case _:
+                    msg: str = ""
+                    raise TypeError(msg)
+
+            bonds["pdbx_aromatic_flag"].append(
+                "Y" if bond.GetIsAromatic() else "N",
+            )
+
+        definition: list[list[str]] = [
+            [f"data_{info['id']}"],
+            ["#"],
+            [f"_chem_comp.{key} {val}" for key, val in info.items()],
+            ["#"],
+            ["loop_"],
+            [f"_chem_comp_atom.{key}" for key in atoms],
+            [" ".join(row) for row in zip(*atoms.values(), strict=True)],
+            ["#"],
+            ["loop_"],
+            [f"_chem_comp_bond.{key}" for key in bonds],
+            [" ".join(row) for row in zip(*bonds.values(), strict=True)],
+            ["#"],
+        ]
+
+        yield linesep.join(line for block in definition for line in block)
 
 
 def base26_encoder(n: int) -> str:
