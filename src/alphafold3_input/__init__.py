@@ -8,9 +8,9 @@ Exports:
     Modification, Entity: Residue modification model and its entity-scope enum.
     Template: Structural template specification for proteins.
     Job, Dialect, Version: Top-level job model and input format enums.
-    Operation, trace, reindex, realign: A3M/FASTA utilities for variant
-        liftover and template/alignment coordinate updates. TODO.
-    ccd, component: TODO.
+    Operation, trace, reindex, realign: Operation trace generation, reindexing,
+        and realignment.
+    ccd, component: Generation of custom chemical component dictionary.
 """
 
 from .bond import Atom, Bond

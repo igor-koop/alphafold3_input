@@ -1,17 +1,19 @@
 """Shared utilities.
 
-This submodule defines TODO, alignment utilities for computing sequence variant
-liftover, redindexing of templates, and realignment of sequence alignments, as
-well as provides bijective base-26 conversion utilities for entity identifiers.
+This submodule defines multiple general-purpose helpers: utilities for
+generation of chemical components and creation of their dictionary, utilities
+for computing of alignment operation traces, redindexing of templates, and
+realignment of alignments, as well as utilities for bijective base-26
+conversion of entity identifiers.
 
 Exports:
-    Operation: TODO.
+    Operation: Enum selecting per-residue alignment operation.
     base26_encoder: Encode a positive 1-based integer as a bijective base-26
         identifier.
     base26_decoder: Decode a bijective base-26 label back into its 1-based
         integer index.
-    ccd: TODO.
-    component: TODO.
+    ccd: Serialize one or more chemical components into a custom CCD.
+    component: Generate and annotate an embedding of a molecule from SMILES.
     realign: Apply an operation trace to rewrite an A3M alignment into the new
         query coordinate system.
     reindex: Update template residue index mappings by lifting reference
@@ -26,6 +28,7 @@ import re
 from collections import defaultdict
 from enum import StrEnum
 from os import linesep
+from re import Pattern
 from typing import TYPE_CHECKING, Any
 
 from numpy import array, dtype, int32, ndarray
@@ -68,6 +71,8 @@ PATTERNS: Mapping[str, tuple[re.Pattern[str], ...]] = {
         re.compile(r"[ACGTX-]+", re.IGNORECASE),
     ),
 }
+
+CCD_CODE: Pattern[str] = re.compile(r"[A-Z0-9][A-Z0-9-]*")
 
 
 class Operation(StrEnum):
@@ -283,26 +288,64 @@ def component(
     code: str,
     name: str,
 ) -> Chem.Mol:
-    """TODO."""
+    """Construct a chemical component embedding from SMILES for CCD export.
+
+    The function parses `smiles`, sanitizes and kekulizes the structure, adds
+    explicit hydrogens, embeds a single 3D conformer, and performs a geometry
+    optimization. It also assigns deterministic per-atom names (atom property
+    `atom_name`) and stores the component metadata (molecule properties
+    `comp_id` and `comp_name`).
+
+    Args:
+        smiles (str): SMILES string describing a chemical component.
+        code (str): Chemical component identifier.
+        name (str): Human-readable component name.
+
+    Returns:
+        out (Mol): Embedded molecule with required annotation properties for
+            CCD export.
+
+    Raises:
+        ValueError: If the chemical component code invalid or component's
+            SMILES is syntactically invalid, not canonical, or not kekulizable.
+        RuntimeError: If conformer embedding fails.
+
+    """
+    if not CCD_CODE.fullmatch(code):
+        msg: str = (
+            "Invalid chemical component code: only uppercase letters, digits "
+            f"and dashes are allowed (code={code})."
+        )
+        raise ValueError(msg)
+
     molecule: Chem.Mol | None = Chem.MolFromSmiles(
         SMILES=smiles,
         sanitize=False,
     )
 
     if molecule is None:
-        msg: str = "SMILES is not syntactically valid."
+        msg: str = (
+            "Invalid chemical component SMILES: SMILES is not syntactically "
+            f"valid (smiles={smiles})."
+        )
         raise ValueError(msg)
 
     try:
         Chem.SanitizeMol(mol=molecule)
     except Exception as e:
-        msg: str = "SMILES does not describe a chemically valid structure."
+        msg: str = (
+            "Invalid chemical component SMILES: SMILES does not describe a "
+            f"chemically valid structure (smiles={smiles})."
+        )
         raise ValueError(msg) from e
 
     try:
         Chem.Kekulize(mol=molecule)
     except Exception as e:
-        msg: str = "SMILES could not be converted into kekulized form."
+        msg: str = (
+            "Invalid chemical component SMILES: SMILES could not be converted "
+            f"into kekulized form (smiles={smiles})."
+        )
         raise ValueError(msg) from e
 
     molecule: Chem.Mol = Chem.AddHs(mol=molecule)
@@ -313,7 +356,10 @@ def component(
 
     cid: int = AllChem.EmbedMolecule(molecule, parameters)  # ty:ignore[unresolved-attribute]
     if cid < 0:
-        msg: str = "Conformer generation from SMILES failed."
+        msg: str = (
+            "Invalid chemical component: conformer generation from SMILES "
+            f"failed (smiles={smiles})."
+        )
         raise RuntimeError(msg)
 
     AllChem.UFFOptimizeMolecule(molecule, maxIters=500)  # ty:ignore[unresolved-attribute]
@@ -331,16 +377,57 @@ def component(
     return molecule
 
 
-def ccd(  # noqa: C901, PLR0912
+def ccd(  # noqa: C901, PLR0912, PLR0915
     *components: Chem.Mol,
 ) -> Generator[str]:
-    """TODO."""
+    """Export chemical component dictionaries for one or more components.
+
+    For each input `components`, serializes a definition block containing
+    chemical component metadata (id, name, type, formula, weight), as well as
+    its atoms (atom ids, elements, charge, and idealized 3D coordinates) and
+    bonds (bond order, stereochemcial configuration, aromaticity).
+
+    The input components must provide molecule properties `comp_id` and
+    `comp_name` as well as atom property `atom_name` for every atom, such
+    as molecules emitted by `component()`.
+
+    Args:
+        *components (Mol): chemical components for CCD export.
+
+    Yields:
+        out (Generator[str]): Chemical component dictionary definition of
+            each specified components.
+
+    Raises:
+        KeyError: If required molecule or atom properties are missing.
+        ValueError: If the molecule has no conformer or computed coordinates.
+        TypeError: If an unsupported bond type or stereochemical configuration
+            is encountered.
+
+    """
     for component in components:
         info: dict[str, str] = {}
         atoms: defaultdict[str, list[str]] = defaultdict(list)
         bonds: defaultdict[str, list[str]] = defaultdict(list)
 
-        coordinates: np.ndarray = component.GetConformer(0).GetPositions()
+        for key in ("comp_id", "comp_name"):
+            if not component.HasProp(key):
+                msg: str = (
+                    "Invalid chemical component: missing required property "
+                    f"(`{key!r}`)."
+                )
+                raise KeyError(msg)
+
+        try:
+            conformer: Chem.Conformer = component.GetConformer(0)
+        except Exception as e:
+            msg: str = (
+                "Invalid chemical component: no available conformers "
+                f"(component={component.GetProp('comp_id')!r})."
+            )
+            raise ValueError(msg) from e
+
+        coordinates: np.ndarray = conformer.GetPositions()
 
         if coordinates is None:
             msg: str = ""
@@ -378,7 +465,11 @@ def ccd(  # noqa: C901, PLR0912
                 case Chem.BondType.TRIPLE:
                     bonds["value_order"].append("TRIP")
                 case _:
-                    msg: str = ""
+                    msg: str = (
+                        "Invalid chemical component: unsupported bond type "
+                        f"(type={bond.GetBondType()}, "
+                        f"component={component.GetProp('comp_id')!r})."
+                    )
                     raise TypeError(msg)
 
             match bond.GetStereo():
@@ -389,7 +480,11 @@ def ccd(  # noqa: C901, PLR0912
                 case Chem.BondStereo.STEREOZ | Chem.BondStereo.STEREOCIS:
                     bonds["pdbx_stereo_config"].append("Z")
                 case _:
-                    msg: str = ""
+                    msg: str = (
+                        "Invalid chemical component: unsupported bond "
+                        f"stereochemistry (type={bond.GetBondType()}, "
+                        f"component={component.GetProp('comp_id')!r})."
+                    )
                     raise TypeError(msg)
 
             bonds["pdbx_aromatic_flag"].append(
