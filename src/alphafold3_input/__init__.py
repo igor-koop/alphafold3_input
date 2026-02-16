@@ -8,8 +8,8 @@ Exports:
     Modification, Entity: Residue modification model and its entity-scope enum.
     Template: Structural template specification for proteins.
     Job, Dialect, Version: Top-level job model and input format enums.
-    trace, reindex, realign: A3M/FASTA utilities for variant liftover and
-        template/alignment coordinate updates.
+    Operation, trace, reindex, realign: A3M/FASTA utilities for variant
+        liftover and template/alignment coordinate updates. TODO.
     ccd, component: TODO.
 """
 
@@ -21,7 +21,7 @@ from .modification import Entity, Modification
 from .protein import Protein
 from .rna import RNA
 from .template import Template
-from .utils import ccd, component, realign, reindex, trace
+from .utils import Operation, ccd, component, realign, reindex, trace
 
 __all__: list[str] = [
     "DNA",
@@ -33,6 +33,7 @@ __all__: list[str] = [
     "Job",
     "Ligand",
     "Modification",
+    "Operation",
     "Protein",
     "Template",
     "Version",

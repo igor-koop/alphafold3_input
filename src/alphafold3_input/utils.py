@@ -5,6 +5,7 @@ liftover, redindexing of templates, and realignment of sequence alignments, as
 well as provides bijective base-26 conversion utilities for entity identifiers.
 
 Exports:
+    Operation: TODO.
     base26_encoder: Encode a positive 1-based integer as a bijective base-26
         identifier.
     base26_decoder: Decode a bijective base-26 label back into its 1-based
@@ -39,6 +40,7 @@ if TYPE_CHECKING:
     import numpy as np
 
 __all__: list[str] = [
+    "Operation",
     "base26_decoder",
     "base26_encoder",
     "ccd",
