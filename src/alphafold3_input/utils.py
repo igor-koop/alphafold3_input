@@ -38,7 +38,13 @@ from rdkit.Chem import AllChem, Descriptors, rdDistGeom, rdMolDescriptors
 from .template import Template
 
 if TYPE_CHECKING:
-    from collections.abc import Generator, Iterable, Mapping, Sequence
+    from collections.abc import (
+        Generator,
+        Iterable,
+        Iterator,
+        Mapping,
+        Sequence,
+    )
 
     import numpy as np
 
@@ -119,7 +125,7 @@ def trace(reference: str, query: str) -> tuple[Operation, ...]:
         raise ValueError(msg)
 
     out: list[Operation] = []
-    reference = iter(reference)
+    reference: Iterator[str] = iter(reference)
 
     for residue in query:
         if not residue.isalpha():
