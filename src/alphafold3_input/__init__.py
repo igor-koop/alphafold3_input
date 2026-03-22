@@ -2,15 +2,28 @@
 
 This package provides models for constructing AlphaFold 3 input files.
 
+It offers a Pythonic, object-oriented interface for defining AlphaFold 3
+jobs, abstracting the underlying JSON input format into typed models and
+validated structures. The implementation closely follows the official
+AlphaFold 3 input specification provided by DeepMind.
+
+For full details on the expected input format and supported features,
+refer to the official `AlphaFold 3 input specification
+<https://github.com/google-deepmind/alphafold3/blob/main/docs/input.md>`_.
+
 Exports:
-    Atom, Bond: Covalent bond specification models.
-    DNA, RNA, Protein, Ligand: Entity models used under `Job.entities`.
-    Modification, Entity: Residue modification model and its entity-scope enum.
-    Template: Structural template specification for proteins.
-    Job, Dialect, Version: Top-level job model and input format enums.
-    Operation, trace, reindex, realign: Operation trace generation, reindexing,
-        and realignment.
-    ccd, component: Generation of custom chemical component dictionary.
+    - :class:`Job`, :class:`Dialect`, :class:`Version`: top-level job model \
+        and input format enums.
+    - :class:`DNA`, :class:`RNA`, :class:`Protein`, :class:`Ligand`: \
+        entity models used under :attr:`Job.entities`.
+    - :class:`Modification`, :class:`Entity`: residue modification model and \
+        its entity-scope enum.
+    - :class:`Template`: structural template specification for proteins.
+    - :class:`Atom`, :class:`Bond`: covalent bond specification models.
+    - :class:`Operation`, :func:`trace`, :func:`reindex`, :func:`realign`: \
+        operation trace generation, reindexing, and realignment utilities.
+    - :func:`ccd`, :func:`component`: generation of custom chemical \
+        component dictionaries.
 """
 
 from .bond import Atom, Bond

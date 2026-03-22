@@ -1,25 +1,25 @@
-"""Shared utilities.
+"""Shared utility functions and enums.
 
-This submodule defines multiple general-purpose helpers: utilities for
-generation of chemical components and creation of their dictionary, utilities
-for computing of alignment operation traces, redindexing of templates, and
-realignment of alignments, as well as utilities for bijective base-26
-conversion of entity identifiers.
+This submodule provides utilities for chemical component generation and CCD
+serialization, alignment tracing and realignment, template reindexing, and
+bijective base-26 conversion of entity identifiers.
 
 Exports:
-    Operation: Enum selecting per-residue alignment operation.
-    base26_encoder: Encode a positive 1-based integer as a bijective base-26
-        identifier.
-    base26_decoder: Decode a bijective base-26 label back into its 1-based
-        integer index.
-    ccd: Serialize one or more chemical components into a custom CCD.
-    component: Generate and annotate an embedding of a molecule from SMILES.
-    realign: Apply an operation trace to rewrite an A3M alignment into the new
-        query coordinate system.
-    reindex: Update template residue index mappings by lifting reference
-        positions into query coordinates.
-    trace: Compute a per-position operation trace for an A3M-style query
-        aligned to a FASTA reference.
+    - :class:`Operation`: Per-residue alignment operation enum.
+    - :func:`base26_encoder`: Encode a positive 1-based integer as a
+        bijective base-26 identifier.
+    - :func:`base26_decoder`: Decode a bijective base-26 identifier into its
+        1-based integer index.
+    - :func:`ccd`: Serialize one or more chemical components into a custom
+        CCD definition.
+    - :func:`component`: Generate and annotate an embedded molecule from
+        SMILES.
+    - :func:`realign`: Apply an operation trace to rewrite an A3M alignment
+        into a new query coordinate system.
+    - :func:`reindex`: Update template residue index mappings by lifting
+        reference positions into query coordinates.
+    - :func:`trace`: Compute a per-position operation trace for an A3M-style
+        query aligned to a FASTA reference.
 """
 
 from __future__ import annotations
@@ -60,12 +60,6 @@ __all__: list[str] = [
 ]
 
 PATTERNS: Mapping[str, tuple[re.Pattern[str], ...]] = {
-    #     """Validation patterns for supported sequence formats.
-    #
-    #     Keys:
-    #         FASTA: Canonical alphabets (protein, RNA, and DNA sequences).
-    #         A3M: Alignment alphabets (sequences with gaps and insertions).
-    #    """
     "FASTA": (
         re.compile(r"[ACDEFGHIKLMNPQRSTVWY]+"),
         re.compile(r"[ACGU]+"),
@@ -77,44 +71,48 @@ PATTERNS: Mapping[str, tuple[re.Pattern[str], ...]] = {
         re.compile(r"[ACGTX-]+", re.IGNORECASE),
     ),
 }
+"""Validation patterns for supported sequence formats.
+
+Keys:
+    FASTA: Canonical alphabets (protein, RNA, and DNA sequences).
+    A3M: Alignment alphabets (sequences with gaps and insertions).
+"""
 
 CCD_CODE: Pattern[str] = re.compile(r"[A-Z0-9][A-Z0-9-]*")
+"""Validation pattern for CCD codes."""
 
 
 class Operation(StrEnum):
-    """Per-residue alignment operation.
-
-    Members:
-        REF: Exact residue match (`"match"`).
-        SUB: Substitution mutation (`"substitution"`).
-        INS: Insertion mutation (`"insertion"`).
-        DEL: Deletion mutation(`"deletion"`).
-    """
+    """Per-residue alignment operation."""
 
     REF = "match"
+    """Exact residue match."""
+
     SUB = "substitution"
+    """Substitution mutation."""
+
     INS = "insertion"
+    """Insertion mutation."""
+
     DEL = "deletion"
+    """Deletion mutation."""
 
 
 def trace(reference: str, query: str) -> tuple[Operation, ...]:
-    """Generate operation trace for alignment of `query` to `reference`.
+    """Generate an operation trace for alignment of ``query`` to ``reference``.
 
-    This interprets an A3M-style `query` string against a canonical FASTA
-    `reference` and emits a per-residue sequence of alignment operations.
+    Interprets an A3M-style ``query`` sequence against a canonical FASTA
+    ``reference`` and emits a per-position sequence of alignment operations.
 
     Args:
         reference (str): Canonical reference sequence in FASTA format.
         query (str): Aligned query sequence in A3M format.
 
     Returns:
-        out (tuple[Operation, ...]): Per-residue sequence of alignment
-            operations.
+        tuple[Operation, ...]: Per-position sequence of alignment operations.
 
     Raises:
-        ValueError: If either input sequence fails validation against expected
-            format.
-
+        ValueError: If either input sequence fails validation.
     """
     if not any(pattern.fullmatch(reference) for pattern in PATTERNS["FASTA"]):
         msg = "Invalid reference sequence: must be in canonical FASTA format."
@@ -144,34 +142,25 @@ def trace(reference: str, query: str) -> tuple[Operation, ...]:
                 out.append(Operation.SUB)
             continue
 
-        msg: str = (
-            f"Invalid query sequence: unexpected query residue ({residue!r})."
-        )
-        raise ValueError(msg)
-
     return tuple(out)
 
 
 def reindex(template: Template, operations: Sequence[Operation]) -> Template:
     """Reindex template residues to a new query sequence.
 
-    This consumes a trace of `operations` that describes how a query sequence
-    aligns to the reference. It computes a liftover mapping from reference
-    positions to query positions, then updates `template.indexes` by
-    transforming each referenced position into the query coordinate system.
+    Consumes an operation trace describing how a query sequence aligns to the
+    reference and updates :attr:`Template.indexes` to query coordinates.
 
     Args:
-        template (Template): Template object with `indexes` defined in
-            reference coordinates (0-based).
-        operations (Sequence[Operation]): Per-residue alignment operations,
-            such as those emitted by `trace()`.
+        template (Template): Template with indexes defined in reference
+            coordinates.
+        operations (Sequence[Operation]): Per-position alignment operations.
 
     Returns:
-        out (Template): Template with `indexes` updated to query coordinates.
+        Template: Template with indexes updated to query coordinates.
 
     Raises:
-        ValueError: If an unexpected operation is encountered.
-
+        ValueError: If an unexpected alignment operation is encountered.
     """
     liftover: dict[int, int] = {}
     positions: ndarray[tuple[Any, ...], dtype[int32]] = array(
@@ -204,25 +193,22 @@ def realign(  # noqa: C901
     alignment: str,
     operations: Sequence[Operation],
 ) -> str:
-    """Realigns an A3M alignment to a new query sequence.
+    """Realign an A3M alignment to a new query sequence.
 
-    This applies a trace of `operations`, describing how a query sequence
-    aligns to the reference, to each sequence of an A3M `alignment`.
+    Applies an operation trace describing how a query sequence aligns to the
+    reference to each sequence in an A3M ``alignment``.
 
     Args:
         alignment (str): Sequence alignment in A3M format.
-        operations (Sequence[Operation]): Per-residue alignment operations,
-            such as those emitted by `trace()`.
+        operations (Sequence[Operation]): Per-position alignment operations.
 
     Returns:
-        out (str): Realigned sequence alignment in A3M format.
+        str: Realigned alignment in A3M format.
 
     Raises:
-        ValueError: If headers or sequences of the alignment fail validation
-            against expected; if a sequence is of unexpected length for
-            provided operations trace; if a sequence contains trailing
-            insertions.
-
+        ValueError: If headers or sequences are invalid, if a sequence is too
+            short or too long for the operation trace, or if trailing
+            insertions are encountered.
     """
     out: list[str] = []
 
@@ -230,8 +216,7 @@ def realign(  # noqa: C901
     for header, sequence in zip(lines, lines, strict=True):
         if not header.startswith(">"):
             msg: str = (
-                "Invalid alignment: unexpected A3M header format "
-                f"({header!r})."
+                f"Invalid alignment: unexpected A3M header format ({header!r})."
             )
             raise ValueError(msg)
 
@@ -294,13 +279,11 @@ def component(
     code: str,
     name: str,
 ) -> Chem.Mol:
-    """Construct a chemical component embedding from SMILES for CCD export.
+    """Construct an embedded chemical component from SMILES for CCD export.
 
-    The function parses `smiles`, sanitizes and kekulizes the structure, adds
-    explicit hydrogens, embeds a single 3D conformer, and performs a geometry
-    optimization. It also assigns deterministic per-atom names (atom property
-    `atom_name`) and stores the component metadata (molecule properties
-    `comp_id` and `comp_name`).
+    Parses ``smiles`` and sanitizes the molecule, adds explicit hydrogens,
+    embeds a 3D conformer, optimizes its geometry, assigns deterministic atom
+    names, and stores component metadata required for CCD export.
 
     Args:
         smiles (str): SMILES string describing a chemical component.
@@ -308,14 +291,12 @@ def component(
         name (str): Human-readable component name.
 
     Returns:
-        out (Mol): Embedded molecule with required annotation properties for
-            CCD export.
+        Mol: Embedded molecule annotated for CCD export.
 
     Raises:
-        ValueError: If the chemical component code invalid or component's
-            SMILES is syntactically invalid, not canonical, or not kekulizable.
+        ValueError: If ``code`` is invalid, or if ``smiles`` is syntactically
+            or chemically invalid.
         RuntimeError: If conformer embedding fails.
-
     """
     if not CCD_CODE.fullmatch(code):
         msg: str = (
@@ -324,37 +305,43 @@ def component(
         )
         raise ValueError(msg)
 
-    molecule: Chem.Mol | None = Chem.MolFromSmiles(
-        SMILES=smiles,
-        sanitize=False,
-    )
-
-    if molecule is None:
+    if Chem.MolFromSmiles(SMILES=smiles, sanitize=False) is None:
         msg: str = (
             "Invalid chemical component SMILES: SMILES is not syntactically "
             f"valid (smiles={smiles})."
         )
         raise ValueError(msg)
 
-    try:
-        Chem.SanitizeMol(mol=molecule)
-    except Exception as e:
+    molecule: Chem.Mol | None = Chem.MolFromSmiles(
+        SMILES=smiles,
+        sanitize=True,
+    )
+
+    if molecule is None:
         msg: str = (
             "Invalid chemical component SMILES: SMILES does not describe a "
             f"chemically valid structure (smiles={smiles})."
         )
-        raise ValueError(msg) from e
-
-    try:
-        Chem.Kekulize(mol=molecule)
-    except Exception as e:
-        msg: str = (
-            "Invalid chemical component SMILES: SMILES could not be converted "
-            f"into kekulized form (smiles={smiles})."
-        )
-        raise ValueError(msg) from e
+        raise ValueError(msg)
 
     molecule: Chem.Mol = Chem.AddHs(mol=molecule)
+
+    molecule.SetProp("comp_id", code)
+    molecule.SetProp("comp_name", f"{name}")
+    molecule.SetProp("comp_smiles", smiles)
+
+    atoms: defaultdict[str, int] = defaultdict(lambda: 0)
+
+    for atom in molecule.GetAtoms():
+        element: str = atom.GetSymbol().upper()
+        atoms[element] += 1
+        atom.SetProp("atom_name", f"{element}{atoms[element]}")
+
+    if any(
+        bond.GetBondType() == Chem.BondType.AROMATIC
+        for bond in molecule.GetBonds()
+    ):
+        Chem.Kekulize(mol=molecule, clearAromaticFlags=True)
 
     parameters: rdDistGeom.EmbedParameters = AllChem.ETKDGv3()  # ty:ignore[unresolved-attribute]
     parameters.maxIterations = 500
@@ -370,16 +357,6 @@ def component(
 
     AllChem.UFFOptimizeMolecule(molecule, maxIters=500)  # ty:ignore[unresolved-attribute]
 
-    atoms: defaultdict[str, int] = defaultdict(lambda: 0)
-
-    for atom in molecule.GetAtoms():
-        element: str = atom.GetSymbol().upper()
-        atoms[element] += 1
-        atom.SetProp("atom_name", f"{element}{atoms[element]}")
-
-    molecule.SetProp("comp_id", code)
-    molecule.SetProp("comp_name", name)
-
     return molecule
 
 
@@ -388,28 +365,22 @@ def ccd(  # noqa: C901, PLR0912, PLR0915
 ) -> Generator[str]:
     """Export chemical component dictionaries for one or more components.
 
-    For each input `components`, serializes a definition block containing
-    chemical component metadata (id, name, type, formula, weight), as well as
-    its atoms (atom ids, elements, charge, and idealized 3D coordinates) and
-    bonds (bond order, stereochemcial configuration, aromaticity).
-
-    The input components must provide molecule properties `comp_id` and
-    `comp_name` as well as atom property `atom_name` for every atom, such
-    as molecules emitted by `component()`.
+    For each input component, yields a CCD definition containing component
+    metadata, atoms, and bonds. Input molecules must provide molecule
+    properties ``comp_id`` and ``comp_name`` and an ``atom_name`` property
+    for every atom.
 
     Args:
-        *components (Mol): chemical components for CCD export.
+        *components (Mol): Chemical components for CCD export.
 
     Yields:
-        out (Generator[str]): Chemical component dictionary definition of
-            each specified components.
+        str: CCD definition of each specified component.
 
     Raises:
         KeyError: If required molecule or atom properties are missing.
-        ValueError: If the molecule has no conformer or computed coordinates.
-        TypeError: If an unsupported bond type or stereochemical configuration
-            is encountered.
-
+        ValueError: If a component has no conformer or coordinates.
+        TypeError: If an unsupported bond type or stereochemical
+            configuration is encountered.
     """
     for component in components:
         info: dict[str, str] = {}
@@ -436,16 +407,25 @@ def ccd(  # noqa: C901, PLR0912, PLR0915
         coordinates: np.ndarray = conformer.GetPositions()
 
         if coordinates is None:
-            msg: str = ""
-            raise ValueError
+            msg: str = (
+                "Invalid chemical component: conformer coordinates are "
+                f"unavailable (component={component.GetProp('comp_id')!r})."
+            )
+            raise ValueError(msg)
+
+        formula: str = "".join(
+            " " + char if char.isupper() else char
+            for char in rdMolDescriptors.CalcMolFormula(component)
+        )[1:]
 
         info["id"] = component.GetProp("comp_id")
         info["name"] = component.GetProp("comp_name")
-        info["type"] = "NON-POLYMER"
-        info["formula"] = rdMolDescriptors.CalcMolFormula(component)
+        info["type"] = '"NON-POLYMER"'
+        info["formula"] = f'"{formula}"'
         info["formula_weight"] = f"{Descriptors.MolWt(component):.3f}"  # ty:ignore[unresolved-attribute]
         info["mon_nstd_parent_comp_id"] = "?"
         info["pdbx_synonyms"] = "?"
+        info["pdbx_smiles"] = component.GetProp("comp_smiles")
 
         for atom in component.GetAtoms():
             atoms["comp_id"].append(info["id"])
@@ -519,17 +499,16 @@ def base26_encoder(n: int) -> str:
     """Encode a positive integer using bijective base-26.
 
     Converts a 1-based integer into an alphabetic identifier using the
-    bijective base-26 convention (A-Z, then AA, AB, ...).
+    bijective base-26 convention.
 
     Args:
         n (int): Positive 1-based integer to encode.
 
     Returns:
-        out (str): Encoded identifier (e.g., 1 -> "A", 26 -> "Z", 27 -> "AA").
+        str: Encoded identifier.
 
     Raises:
-        ValueError: If `n` is not a positive 1-based integer (`n < 1`).
-
+        ValueError: If ``n`` is less than 1.
     """
     if n < 1:
         msg: str = (
@@ -549,20 +528,17 @@ def base26_encoder(n: int) -> str:
 def base26_decoder(s: str) -> int:
     """Decode a bijective base-26 identifier into an integer.
 
-    Converts an alphabetic identifier in the bijective base-26 convention
-    (A-Z, AA, AB, ...) into its corresponding 1-based integer.
+    Converts an alphabetic identifier in the bijective base-26 convention into
+    its corresponding 1-based integer.
 
     Args:
-        s (str): Identifier to decode. Must consist only of uppercase letters
-            A-Z.
+        s (str): Identifier to decode.
 
     Returns:
-        n (int): Decoded positive 1-based integer (e.g., "A" -> 1, "Z" -> 26,
-            "AA" -> 27).
+        int: Decoded positive 1-based integer.
 
     Raises:
-        ValueError: If `s` is empty or contains characters outside A-Z.
-
+        ValueError: If ``s`` is empty or contains characters outside A-Z.
     """
     if not s:
         msg: str = (

@@ -1,15 +1,15 @@
-"""DNA chain entity model.
+"""DNA chain entity models.
 
-This submodule defines the `DNA` model, which can be used to include
-polymeric DNA entities in an AlphaFold 3 input for structure prediction.
+This submodule defines :class:`DNA`, which can be used to include polymeric DNA
+entities in an AlphaFold 3 input.
 
 Exports:
-    DNA: Model representing a DNA chain entity.
+    - :class:`DNA`: DNA chain entity model.
 """
 
 from __future__ import annotations
 
-from collections.abc import Sequence  # noqa: TC003
+from collections.abc import Sequence
 from typing import Annotated, Any, Self
 
 from pydantic import (
@@ -34,16 +34,13 @@ __all__: list[str] = [
 class DNA(BaseModel):
     """DNA chain entity specification.
 
-    Represents a polymeric DNA entity for inclusion under `Job.sequences` in an
-    AlphaFold 3 input.
+    A DNA chain is defined by its nucleotide :attr:`sequence`, optional
+    :attr:`modifications`, and one or more chain identifiers via :attr:`id`.
+    Multiple copies can be defined either by setting :attr:`copies` or by
+    providing multiple explicit identifiers in :attr:`id`.
 
-    A DNA chain is defined by its nucleotide `sequence` (A, C, G, and T).
-    Modified residues can be provided through `modifications` as `Modification`
-    entries. Additional entries may be appended using `DNA.modify()`.
-
-    Multiple copies of a DNA chain can be defined either by setting `copies` or
-    by providing multiple explicit identifiers via `id`. Optional `description`
-    is supported only when `Job.version` is set to input format version 4.
+    The optional :attr:`description` field is supported only when
+    :attr:`Job.version` is set to :attr:`Version.IV`.
 
     Attributes:
         id (str | Sequence[str] | None): DNA chain identifier(s).
@@ -55,30 +52,26 @@ class DNA(BaseModel):
 
     Examples:
         DNA chain with a description.
-        ```python
-        DNA(
-            description="Promoter for bacteriophage T7 RNA polymerase",
-            sequence="TAATACGACTCACTATAGG",
-        )
-        ```
+
+        >>> DNA(
+        ...     description="Promoter for bacteriophage T7 RNA polymerase",
+        ...     sequence="TAATACGACTCACTATAGG",
+        ... )
 
         Multiple copies of a DNA chain.
-        ```python
-        DNA(
-            sequence="GAATTC",
-            copies=2
-        )
-        ```
+
+        >>> DNA(
+        ...     sequence="GAATTC",
+        ...     copies=2,
+        ... )
 
         DNA chain with modified residues.
-        ```python
-        heptamer = DNA(sequence="GACCTCT")
-        heptamer.modify(
-            Modification(type="6OG", position=1),
-            Modification(type="6MA", position=2),
-        )
-        ```
 
+        >>> heptamer = DNA(sequence="GACCTCT")
+        >>> heptamer.modify(
+        ...     Modification(type="6OG", position=1),
+        ...     Modification(type="6MA", position=2),
+        ... )
     """
 
     model_config = ConfigDict(
@@ -90,74 +83,74 @@ class DNA(BaseModel):
         use_enum_values=False,
     )
 
-    id: Annotated[
+    id: (
         Annotated[str, StringConstraints(pattern="^[A-Z]+$")]
         | Sequence[Annotated[str, StringConstraints(pattern="^[A-Z]+$")]]
-        | None,
-        Field(
-            title="id",
-            description="DNA chain identifier(s).",
-            min_length=1,
-            validation_alias=AliasPath("dna", "id"),
-            serialization_alias="id",
-        ),
-    ] = None
+        | None
+    ) = Field(
+        title="id",
+        alias="id",
+        description="DNA chain identifier(s).",
+        min_length=1,
+        validation_alias=AliasPath("dna", "id"),
+        serialization_alias="id",
+        default=None,
+    )
+    """DNA chain identifier(s)."""
 
-    description: Annotated[
-        str | None,
-        Field(
-            title="description",
-            description="Free-text DNA chain description.",
-            validation_alias=AliasPath("dna", "description"),
-            serialization_alias="description",
-        ),
-    ] = None
+    description: str | None = Field(
+        title="description",
+        alias="description",
+        description="Free-text DNA chain description.",
+        validation_alias=AliasPath("dna", "description"),
+        serialization_alias="description",
+        default=None,
+    )
+    """Free-text DNA chain description."""
 
-    sequence: Annotated[
-        Annotated[str, StringConstraints(pattern="^[ACGT]+$")],
-        Field(
-            title="sequence",
-            description="DNA chain nucleotide sequence.",
-            min_length=1,
-            validation_alias=AliasPath("dna", "sequence"),
-            serialization_alias="sequence",
-        ),
-    ]
+    sequence: Annotated[str, StringConstraints(pattern="^[ACGT]+$")] = Field(
+        title="sequence",
+        alias="sequence",
+        description="DNA chain nucleotide sequence.",
+        min_length=1,
+        validation_alias=AliasPath("dna", "sequence"),
+        serialization_alias="sequence",
+    )
+    """DNA chain nucleotide sequence."""
 
-    modifications: Annotated[
-        Sequence[Modification],
-        Field(
-            title="modifications",
-            description="DNA chain residue modifications.",
-            validation_alias=AliasPath("dna", "modifications"),
-            serialization_alias="modifications",
-        ),
-    ] = Field(default_factory=tuple)
+    modifications: Sequence[Modification] = Field(
+        title="modifications",
+        alias="modifications",
+        description="DNA chain residue modifications.",
+        validation_alias=AliasPath("dna", "modifications"),
+        serialization_alias="modifications",
+        default_factory=tuple,
+    )
+    """DNA chain residue modifications."""
 
-    copies: Annotated[
-        int,
-        Field(
-            title="copies",
-            description="Number of DNA chain copies.",
-            ge=1,
-            validation_alias="copies",
-            exclude=True,
-            repr=False,
-        ),
-    ] = 1
+    copies: int = Field(
+        title="copies",
+        alias="copies",
+        description="Number of DNA chain copies.",
+        ge=1,
+        validation_alias="copies",
+        exclude=True,
+        repr=False,
+        default=1,
+    )
+    """Number of DNA chain copies."""
 
     def modify(self: Self, *modifications: Modification) -> Self:
-        """Append one or more residue modifications to a DNA chain.
+        """Append residue modifications to the DNA chain.
 
         Args:
             *modifications (Modification): One or more modifications to add.
 
         Returns:
-            out (Self): DNA chain entity with modified residues.
+            Self: DNA chain with appended modifications.
 
         Raises:
             TypeError: If no modifications were provided.
-
         """
         if not modifications:
             msg: str = (
@@ -165,7 +158,9 @@ class DNA(BaseModel):
             )
             raise TypeError(msg)
 
-        self.modifications = tuple(self.modifications) + tuple(modifications)
+        self.modifications: tuple[Modification, ...] = tuple(
+            self.modifications,
+        ) + tuple(modifications)
         return self
 
     @field_validator("modifications", mode="after")
@@ -174,18 +169,13 @@ class DNA(BaseModel):
         cls: type[Self],
         value: Sequence[Modification],
     ) -> Sequence[Modification]:
-        """Assign DNA scope to `modifications`.
-
-        `Modification` model supports multiple polymer contexts, so each entry
-        in `modifications` is tagged with `scope=Entity.DNA` to ensure correct
-        serialization.
+        """Assign DNA scope to each modification.
 
         Args:
             value (Sequence[Modification]): Modification entries.
 
         Returns:
-            out (Sequence[Modification]): Scoped modification entries.
-
+            Sequence[Modification]: Scoped modification entries.
         """
         for modification in value:
             object.__setattr__(modification, "scope", Entity.DNA)
@@ -193,20 +183,17 @@ class DNA(BaseModel):
 
     @model_validator(mode="after")
     def __validate_modifications(self: Self) -> Self:
-        """Validate residue `modifications` against the DNA chain `sequence`.
+        """Validate residue modifications against the DNA sequence.
 
-        Ensures that each modification targets a valid residue position within
-        the DNA chain `sequence`, and that no residue is modified more than
-        once.
+        Ensures that each modification position is within the sequence and that
+        no residue is modified more than once.
 
         Returns:
-            out (Self): The validated DNA chain instance.
+            Self: Validated DNA chain instance.
 
         Raises:
-            ValueError: If a modification targets a position outside the
-                DNA chain `sequence`.
+            ValueError: If a modification position is out of range.
             ValueError: If multiple modifications target the same position.
-
         """
         length: int = len(self.sequence)
         modified: set[int] = set()
@@ -233,19 +220,17 @@ class DNA(BaseModel):
 
     @model_validator(mode="after")
     def __validate_copies(self: Self) -> Self:
-        """Enforce consistency between `id` and `copies`.
+        """Validate consistency between ``id`` and ``copies``.
 
-        If `id` is provided, `copies` is set to `len(id)`. If `copies` was
-        explicitly provided and is inconsistent with `id`, a `ValueError` is
-        raised.
+        If :attr:`id` is provided, :attr:`copies` is set to ``len(id)``. If
+        :attr:`copies` was explicitly provided and is inconsistent with
+        :attr:`id`, a :class:`ValueError` is raised.
 
         Returns:
-            out (Self): The validated DNA chain instance.
+            Self: Validated DNA chain instance.
 
         Raises:
-            ValueError: If `copies` was explicitly provided and is inconsistent
-                with `id`.
-
+            ValueError: If ``copies`` is inconsistent with ``id``.
         """
         if self.id is None:
             return self
@@ -267,11 +252,9 @@ class DNA(BaseModel):
         self: Self,
         handler: SerializerFunctionWrapHandler,
     ) -> dict[str, Any]:
-        """Serialize the entity using the AlphaFold 3 wrapped representation.
+        """Serialize the entity in wrapped AlphaFold 3 form.
 
         Returns:
-            out (dict[str, Any]): Wrapped entity mapping suitable for the
-                AlphaFold 3 input format.
-
+            dict[str, Any]: Wrapped entity mapping.
         """
         return {self.__class__.__name__.lower(): handler(self)}

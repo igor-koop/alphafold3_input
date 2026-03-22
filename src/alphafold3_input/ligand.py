@@ -1,16 +1,15 @@
-"""Ligand entity model.
+"""Ligand entity models.
 
-This submodule defines the `Ligand` model, which can be used to include
-non-polymeric chemical entities, such as small molecules or ions, in an
-AlphaFold 3 input for structure prediction.
+This submodule defines :class:`Ligand`, which can be used to include
+non-polymeric chemical entities in an AlphaFold 3 input.
 
 Exports:
-    Ligand: Model representing a ligand entity.
+    - :class:`Ligand`: Ligand entity model.
 """
 
 from __future__ import annotations
 
-from collections.abc import Sequence  # noqa: TC003
+from collections.abc import Sequence
 from typing import Annotated, Any, Self
 
 from pydantic import (
@@ -36,22 +35,21 @@ __all__: list[str] = [
 class Ligand(BaseModel):
     """Ligand entity specification.
 
-    Represents a non-polymeric chemical entity (such as a small molecule or
-    ion) for inclusion under `Job.sequences` in an AlphaFold 3 input.
+    A ligand is defined either by CCD code(s) or by a SMILES string.
 
-    A ligand is defined either by CCD code(s) or a SMILES string:
-    - CCD codes (`definition` as `Sequence[str]`) are preferred if available.
-      Multiple codes can be used to represent composite ligands (such as
-      glycans) with covalent bonds specified via `Job.bonds`, using explicit
-      atom names. Custom CCDs can be used when provided via `Job.ccd`.
-    - SMILES (`definition` as `str`) allows specifying ligands not present in
-      the CCD, but cannot be referenced by `Job.bonds` and may be less robust
-      for geometry generation across random seeds.
+    CCD codes (:attr:`definition` as a sequence of CCD codes) are preferred when
+    available. Multiple codes can represent composite ligands such as glycans,
+    with covalent connectivity specified separately via :attr:`Job.bonds`.
+    Custom CCD entries may be provided through :attr:`Job.ccd`.
 
-    Multiple copies of a ligand can be defined either by setting `copies` or by
-    providing multiple explicit identifiers via `id`. Optional `description` is
-    supported only when `Job.version` is set to input format version 4.
+    A SMILES string (:attr:`definition` as a string) can be used for ligands not
+    present in the CCD, but such ligands cannot be referenced in
+    :attr:`Job.bonds`.
 
+    Multiple copies of a ligand can be defined either by setting :attr:`copies`
+    or by providing multiple explicit identifiers in :attr:`id`. The optional
+    :attr:`description` field is supported only when :attr:`Job.version` is set
+    to :attr:`Version.IV`.
 
     Attributes:
         id (str | Sequence[str] | None): Ligand identifier(s).
@@ -62,30 +60,26 @@ class Ligand(BaseModel):
 
     Examples:
         Ligand defined by a CCD code.
-        ```python
-        Ligand(
-            description="Adenosine triphosphate",
-            definition=["ATP"],
-        )
-        ```
+
+        >>> Ligand(
+        ...     description="Adenosine triphosphate",
+        ...     definition=["ATP"],
+        ... )
 
         Multiple copies of an ion.
-        ```python
-        Ligand(
-            definition=["MG"],
-            copies=2,
-        )
-        ```
+
+        >>> Ligand(
+        ...     definition=["MG"],
+        ...     copies=2,
+        ... )
 
         Custom ligand with explicit identifier defined by SMILES.
-        ```python
-        Ligand(
-            id=["LIG"],
-            description="Aceclidine",
-            definition="CC(=O)OC1C[NH+]2CCC1CC2",
-        )
-        ```
 
+        >>> Ligand(
+        ...     id=["LIG"],
+        ...     description="Aceclidine",
+        ...     definition="CC(=O)OC1C[NH+]2CCC1CC2",
+        ... )
     """
 
     model_config = ConfigDict(
@@ -97,101 +91,97 @@ class Ligand(BaseModel):
         use_enum_values=False,
     )
 
-    id: Annotated[
+    id: (
         Annotated[str, StringConstraints(pattern="^[A-Z]+$")]
         | Sequence[Annotated[str, StringConstraints(pattern="^[A-Z]+$")]]
-        | None,
-        Field(
-            title="id",
-            description="Ligand identifier(s).",
-            min_length=1,
-            validation_alias=AliasPath("ligand", "id"),
-            serialization_alias="id",
-        ),
-    ] = None
+        | None
+    ) = Field(
+        title="id",
+        alias="id",
+        description="Ligand identifier(s).",
+        min_length=1,
+        validation_alias=AliasPath("ligand", "id"),
+        serialization_alias="id",
+        default=None,
+    )
+    """Ligand identifier(s)."""
 
-    description: Annotated[
-        str | None,
-        Field(
-            title="description",
-            description="Free-text ligand description.",
-            validation_alias=AliasPath("ligand", "description"),
-            serialization_alias="description",
-        ),
-    ] = None
+    description: str | None = Field(
+        title="description",
+        alias="description",
+        description="Free-text ligand description.",
+        validation_alias=AliasPath("ligand", "description"),
+        serialization_alias="description",
+        default=None,
+    )
+    """"Free-text ligand description."""
 
-    definition: Annotated[
+    definition: (
         Annotated[
             str,
             StringConstraints(
                 pattern=r"^[0-9\-=#/\\@$+()%.*:\[\]BCEFHIKLNOPRSTZbceinos]+$",
             ),
         ]
-        | Sequence[str],
-        Field(
-            title="definition",
-            description="Ligand definition as CCD code(s) or SMILES.",
-            validation_alias=AliasChoices(
-                AliasPath("ligand", "ccdCodes"),
-                AliasPath("ligand", "smiles"),
-            ),
-            exclude=True,
+        | Sequence[str]
+    ) = Field(
+        title="definition",
+        alias="definition",
+        description="Ligand definition as CCD code(s) or SMILES.",
+        validation_alias=AliasChoices(
+            AliasPath("ligand", "ccdCodes"),
+            AliasPath("ligand", "smiles"),
         ),
-    ]
+        exclude=True,
+    )
+    """Ligand definition as CCD code(s) or SMILES."""
 
-    copies: Annotated[
-        int,
-        Field(
-            title="copies",
-            description="Number of ligand copies.",
-            ge=1,
-            validation_alias="copies",
-            exclude=True,
-            repr=False,
-        ),
-    ] = 1
+    copies: int = Field(
+        title="copies",
+        description="Number of ligand copies.",
+        ge=1,
+        validation_alias="copies",
+        exclude=True,
+        repr=False,
+        default=1,
+    )
+    """Number of ligand copies."""
 
     @computed_field(alias="smiles", repr=False)
     @property
     def __definition_smiles(self: Self) -> str | None:
-        """Expose SMILES `definition` for serialization.
+        """Expose SMILES ``definition`` for serialization.
 
         Returns:
-            out (str | None): `definition` when it is a SMILES string,
-                otherwise `None`.
-
+            str | None: ``definition`` when it is a SMILES string, otherwise
+            ``None``.
         """
         return self.definition if isinstance(self.definition, str) else None
 
     @computed_field(alias="ccdCodes", repr=False)
     @property
     def __definition_ccd(self: Self) -> Sequence[str] | None:
-        """Expose CCD code(s) `definition` for serialization.
+        """Expose CCD code definitions for serialization.
 
         Returns:
-            out (Sequence[str, ...] | None): `definition` when it is a
-                sequence of CCD codes, otherwise `None`.
-
+            Sequence[str] | None: ``definition`` when it is a sequence of CCD
+            codes, otherwise ``None``.
         """
-        return (
-            self.definition if not isinstance(self.definition, str) else None
-        )
+        return self.definition if not isinstance(self.definition, str) else None
 
     @model_validator(mode="after")
     def __validate_copies(self: Self) -> Self:
-        """Enforce consistency between `id` and `copies`.
+        """Validate consistency between ``id`` and ``copies``.
 
-        If `id` is provided, `copies` is set to `len(id)`. If `copies` was
-        explicitly provided and is inconsistent with `id`, a `ValueError` is
-        raised.
+        If :attr:`id` is provided, :attr:`copies` is set to ``len(id)``. If
+        :attr:`copies` was explicitly provided and is inconsistent with
+        :attr:`id`, a :class:`ValueError` is raised.
 
         Returns:
-            out (Self): The validated ligand instance.
+            Self: Validated ligand instance.
 
         Raises:
-            ValueError: If `copies` was explicitly provided and is inconsistent
-                with `id`.
-
+            ValueError: If ``copies`` is inconsistent with ``id``.
         """
         if self.id is None:
             return self
@@ -214,22 +204,20 @@ class Ligand(BaseModel):
         cls: type[Self],
         value: str | Sequence[str],
     ) -> str | Sequence[str]:
-        """Validate SMILES ligand definitions and enforce canonical form.
+        """Validate SMILES ligand definitions.
 
-        If `definition` is provided as a string, it is interpreted as SMILES
-        and must be syntactically correct, chemically valid, and in canonical
-        form. Otherwise, a `ValueError` is raised. If provided as a sequence of
-        CCD codes, it is returned unchanged.
+        If :attr:`definition` is provided as a string, it is interpreted as a
+        SMILES string and must be syntactically valid, chemically valid, and in
+        canonical form. CCD code definitions are returned unchanged.
 
         Args:
-            value (str | Sequence[str]): The ligand definition to validate.
+            value (str | Sequence[str]): Ligand definition to validate.
 
         Returns:
-            out (str | Sequence[str]): The validated ligand definition.
+            str | Sequence[str]: Validated ligand definition.
 
         Raises:
             ValueError: If the SMILES string is invalid or not canonical.
-
         """
         if not isinstance(value, str):
             return value
@@ -275,11 +263,9 @@ class Ligand(BaseModel):
         self: Self,
         handler: SerializerFunctionWrapHandler,
     ) -> dict[str, Any]:
-        """Serialize the entity using the AlphaFold 3 wrapped representation.
+        """Serialize the entity in wrapped AlphaFold 3 form.
 
         Returns:
-            out (dict[str, Any]): Wrapped entity mapping suitable for the
-                AlphaFold 3 input format.
-
+            dict[str, Any]: Wrapped entity mapping.
         """
         return {self.__class__.__name__.lower(): handler(self)}

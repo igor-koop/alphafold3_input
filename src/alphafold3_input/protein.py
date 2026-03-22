@@ -1,10 +1,10 @@
-"""Protein chain entity model.
+"""Protein chain entity models.
 
-This submodule defines the `Protein` model, which can be used to include
-polymeric protein entities in an AlphaFold 3 input for structure prediction.
+This submodule defines :class:`Protein`, which can be used to include
+polymeric protein entities in an AlphaFold 3 input.
 
 Exports:
-    Protein: Model representing a protein chain entity.
+    - :class:`Protein`: Protein chain entity model.
 """
 
 from __future__ import annotations
@@ -39,25 +39,22 @@ __all__: list[str] = [
 class Protein(BaseModel):
     """Protein chain entity specification.
 
-    Represents a polymeric protein entity for inclusion under `Job.sequences`
-    in an AlphaFold 3 input.
+    A protein chain is defined by its amino acid :attr:`sequence`, optional
+    residue :attr:`modifications`, optional multiple sequence :attr:`alignment`,
+    and optional structural :attr:`templates`.
 
-    A protein chain is defined by its amino acid `sequence` (20 standard
-    proteinogenic amino acids; 1-letter code). Post-translational modifications
-    can be provided through `modifications` as `Modification` entries.
-    Additional entries may be appended using `Protein.modify()`.
+    Post-translational modifications can be provided through
+    :class:`Modification` entries. Additional entries may be appended using
+    :meth:`modify`.
 
-    A protein chain may include a multiple sequence alignment via `alignment`,
-    either provided inline as a string or as a filesystem path. MSA pairing,
-    relevant for multimer folding, is set automatically: when `alignment` is
-    provided, it is serialized as an empty string and is otherwise omitted.
-
-    Structural templates can be provided via `templates` as `Template` entries.
+    A multiple sequence alignment may be provided either inline as a string or
+    as a filesystem path. When :attr:`alignment` is present, paired MSA output
+    is serialized as an empty string.
 
     Multiple copies of a protein chain can be defined either by setting
-    `copies` or by providing multiple explicit identifiers via `id`. Optional
-    `description` is supported only when `Job.version` is set to input format
-    version 4.
+    :attr:`copies` or by providing multiple explicit identifiers in
+    :attr:`id`. The optional :attr:`description` field is supported only when
+    :attr:`Job.version` is set to :attr:`Version.IV`.
 
     Attributes:
         id (str | Sequence[str] | None): Protein chain identifier(s).
@@ -65,61 +62,53 @@ class Protein(BaseModel):
         sequence (str): Protein chain amino acid sequence.
         modifications (Sequence[Modification]): Protein chain
             post-translational modifications.
-        alignment (str | Path | None): Multiple sequence alignment for protein
-            chain.
-        templates (Sequence[Template] | None): Structural templates for protein
-            chain.
+        alignment (str | Path | None): Multiple sequence alignment.
+        templates (Sequence[Template] | None): Structural templates.
         copies (int): Number of protein chain copies.
 
     Examples:
         Protein chain with a description.
-        ```python
-        Protein(
-            description="AviTag for BirA-mediated biotinylation",
-            sequence="GLNDIFEAQKIEWHE",
-        )
-        ```
+
+        >>> Protein(
+        ...     description="AviTag for BirA-mediated biotinylation",
+        ...     sequence="GLNDIFEAQKIEWHE",
+        ... )
 
         Multiple copies of a protein chain.
-        ```python
-        Protein(
-            sequence="RMKQLEDKVEELLSKKYHLENEVARLKKLVGER",
-            copies=2
-        )
-        ```
+
+        >>> Protein(
+        ...     sequence="RMKQLEDKVEELLSKKYHLENEVARLKKLVGER",
+        ...     copies=2,
+        ... )
 
         Protein chain with modified residues.
-        ```python
-        peptide = Protein(sequence="PVLSCGEWQL")
-        peptide.modify(
-            Modification(type="HY3", position=1),
-            Modification(type="P1L", position=5),
-        )
-        ```
+
+        >>> peptide = Protein(sequence="PVLSCGEWQL")
+        >>> peptide.modify(
+        ...     Modification(type="HY3", position=1),
+        ...     Modification(type="P1L", position=5),
+        ... )
 
         Protein chain with an alignment file.
-        ```python
-        Protein(
-            id=["A", "B"],
-            sequence="KRRWKKNFIAVSAANRFKKISSSGAL",
-            alignment=Path("alignment.a3m"),
-        )
-        ```
+
+        >>> Protein(
+        ...     id=["A", "B"],
+        ...     sequence="KRRWKKNFIAVSAANRFKKISSSGAL",
+        ...     alignment=Path("alignment.a3m"),
+        ... )
 
         Protein chain with a structural template.
-        ```python
-        Protein(
-            id=["C"],
-            sequence="RPACQLW",
-            templates=[
-                Template(
-                    structure=Path("template.cif.gz"),
-                    indexes={0: 0, 1: 1, 2: 2, 4: 3, 5: 4, 6: 8},
-                ),
-            ],
-        )
-        ```
 
+        >>> Protein(
+        ...     id=["C"],
+        ...     sequence="RPACQLW",
+        ...     templates=[
+        ...         Template(
+        ...             structure=Path("template.cif.gz"),
+        ...             indexes={0: 0, 1: 1, 2: 2, 4: 3, 5: 4, 6: 8},
+        ...         ),
+        ...     ],
+        ... )
     """
 
     model_config = ConfigDict(
@@ -131,133 +120,131 @@ class Protein(BaseModel):
         use_enum_values=False,
     )
 
-    id: Annotated[
+    id: (
         Annotated[str, StringConstraints(pattern="^[A-Z]+$")]
         | Sequence[Annotated[str, StringConstraints(pattern="^[A-Z]+$")]]
-        | None,
-        Field(
-            title="id",
-            description="Protein chain identifier(s).",
-            min_length=1,
-            validation_alias=AliasPath("protein", "id"),
-            serialization_alias="id",
-        ),
-    ] = None
+        | None
+    ) = Field(
+        title="id",
+        alias="id",
+        description="Protein chain identifier(s).",
+        min_length=1,
+        validation_alias=AliasPath("protein", "id"),
+        serialization_alias="id",
+        default=None,
+    )
+    """Protein chain identifier(s)."""
 
-    description: Annotated[
-        str | None,
-        Field(
-            title="description",
-            description="Free-text protein chain description.",
-            validation_alias=AliasPath("protein", "description"),
-            serialization_alias="description",
-        ),
-    ] = None
+    description: str | None = Field(
+        title="description",
+        alias="description",
+        description="Free-text protein chain description.",
+        validation_alias=AliasPath("protein", "description"),
+        serialization_alias="description",
+        default=None,
+    )
+    """Free-text protein chain description."""
 
     sequence: Annotated[
-        Annotated[str, StringConstraints(pattern="^[ACDEFGHIKLMNPQRSTVWY]+$")],
-        Field(
-            title="sequence",
-            description="Protein chain amino acid sequence.",
-            min_length=1,
-            validation_alias=AliasPath("protein", "sequence"),
-            serialization_alias="sequence",
-        ),
-    ]
+        str,
+        StringConstraints(pattern="^[ACDEFGHIKLMNPQRSTVWY]+$"),
+    ] = Field(
+        title="sequence",
+        alias="sequence",
+        description="Protein chain amino acid sequence.",
+        min_length=1,
+        validation_alias=AliasPath("protein", "sequence"),
+        serialization_alias="sequence",
+    )
+    """Protein chain amino acid sequence."""
 
-    modifications: Annotated[
-        Sequence[Modification],
-        Field(
-            title="modifications",
-            description="Protein chain residue modifications.",
-            validation_alias=AliasPath("protein", "modifications"),
-            serialization_alias="modifications",
-        ),
-    ] = Field(default_factory=tuple)
+    modifications: Sequence[Modification] = Field(
+        title="modifications",
+        alias="modifications",
+        description="Protein chain residue modifications.",
+        validation_alias=AliasPath("protein", "modifications"),
+        serialization_alias="modifications",
+        default_factory=tuple,
+    )
+    """Protein chain residue modifications."""
 
-    alignment: Annotated[
-        str | Path | None,
-        Field(
-            title="alignment",
-            description="Multiple sequence alignment for protein chain.",
-            validation_alias=AliasChoices(
-                AliasPath("protein", "unpairedMsa"),
-                AliasPath("protein", "unpairedMsaPath"),
-            ),
-            exclude=True,
+    alignment: str | Path | None = Field(
+        title="alignment",
+        alias="alignment",
+        description="Multiple sequence alignment for protein chain.",
+        validation_alias=AliasChoices(
+            AliasPath("protein", "unpairedMsa"),
+            AliasPath("protein", "unpairedMsaPath"),
         ),
-    ] = None
+        exclude=True,
+        default=None,
+    )
+    """Multiple sequence alignment for protein chain."""
 
-    templates: Annotated[
-        Sequence[Template] | None,
-        Field(
-            title="templates",
-            description="Structural templates for protein chain.",
-            validation_alias=AliasPath("protein", "templates"),
-            serialization_alias="templates",
-        ),
-    ] = None
+    templates: Sequence[Template] | None = Field(
+        title="templates",
+        alias="templates",
+        description="Structural templates for protein chain.",
+        validation_alias=AliasPath("protein", "templates"),
+        serialization_alias="templates",
+        default=None,
+    )
+    """Structural templates for protein chain."""
 
-    copies: Annotated[
-        int,
-        Field(
-            title="copies",
-            description="Number of protein chain copies.",
-            ge=1,
-            validation_alias="copies",
-            exclude=True,
-            repr=False,
-        ),
-    ] = 1
+    copies: int = Field(
+        title="copies",
+        alias="copies",
+        description="Number of protein chain copies.",
+        ge=1,
+        validation_alias="copies",
+        exclude=True,
+        repr=False,
+        default=1,
+    )
+    """Number of protein chain copies."""
 
     @computed_field(alias="unpairedMsa", repr=False)
     @property
-    def __alignment_inline(self) -> str | None:
-        """Expose inline `alignment` for serialization.
+    def __alignment_inline(self: Self) -> str | None:
+        """Expose inline ``alignment`` for serialization.
 
         Returns:
-            out (str | None): `alignment` when it is a string,
-                otherwise `None`.
-
+            str | None: ``alignment`` when it is a string, otherwise ``None``.
         """
         return self.alignment if isinstance(self.alignment, str) else None
 
     @computed_field(alias="unpairedMsaPath", repr=False)
     @property
-    def __alignment_path(self) -> Path | None:
-        """Expose `alignment` path for serialization.
+    def __alignment_path(self: Self) -> Path | None:
+        """Expose path-based ``alignment`` for serialization.
 
         Returns:
-            out (Path | None): `alignment` when it is a path, otherwise
-                `None`.
-
+            Path | None: ``alignment`` when it is a path, otherwise ``None``.
         """
         return self.alignment if isinstance(self.alignment, Path) else None
 
     @computed_field(alias="pairedMsa", repr=False)
     @property
-    def __alignment_paired(self) -> str | None:
-        """Sets MSA pairing based on `alignment` for serialization.
+    def __alignment_paired(self: Self) -> str | None:
+        """Expose paired MSA output for serialization.
 
         Returns:
-            out (str | None): Empty string when `alignment` is provided,
-                otherwise `None`.
-
+            str | None: Empty string when :attr:`alignment` is present,
+            otherwise ``None``.
         """
         return "" if self.alignment is not None else None
 
     def modify(self: Self, *modifications: Modification) -> Self:
-        """Append one or more residue modifications to a protein chain.
+        """Append residue modifications to the protein chain.
 
         Args:
             *modifications (Modification): One or more modifications to add.
 
         Returns:
-            out (Self): Protein chain entity with modified residues.
+            Self: Protein chain with appended modifications.
 
         Raises:
             TypeError: If no modifications were provided.
-
         """
         if not modifications:
             msg: str = (
@@ -265,7 +252,9 @@ class Protein(BaseModel):
             )
             raise TypeError(msg)
 
-        self.modifications = tuple(self.modifications) + tuple(modifications)
+        self.modifications: tuple[Modification, ...] = tuple(
+            self.modifications,
+        ) + tuple(modifications)
         return self
 
     @model_validator(mode="wrap")
@@ -275,29 +264,32 @@ class Protein(BaseModel):
         data: Any,
         handler: ModelWrapValidatorHandler[Self],
     ) -> Self:
-        """Coerce `alignment` to a `Path`.
-
-        Inspects the raw input data. When the input is a mapping containing
-        `unpairedMsaPath`, its value is converted to a `Path` and assigned to
-        `alignment` after successful model validation.
+        """Coerce path-based ``alignment`` input to :class:`Path`.
 
         Args:
             data (Any): Raw input data.
             handler (ModelWrapValidatorHandler[Self]): Inner model validator.
 
         Returns:
-            out (Self): Validated model with `alignment` coerced to `Path` when
-                applicable.
-
+            Self: Validated model with path-based ``alignment`` coerced to
+            :class:`Path` when applicable.
         """
         if not isinstance(data, Mapping):
             return handler(data)
 
         alias: str = "unpairedMsaPath"
-        value: object | None = data.get(alias)
+        value: str | None = None
+
+        if isinstance(data.get("protein"), Mapping):
+            value: str | None = data["protein"].get(alias)
+        else:
+            value: str | None = data.get(alias)
+
         model: Self = handler(data)
+
         if value is not None and isinstance(value, str):
             object.__setattr__(model, "alignment", Path(value))
+
         return model
 
     @field_validator("modifications", mode="after")
@@ -306,18 +298,13 @@ class Protein(BaseModel):
         cls: type[Self],
         value: Sequence[Modification],
     ) -> Sequence[Modification]:
-        """Assign protein scope to `modifications`.
-
-        `Modification` model supports multiple polymer contexts, so each entry
-        in `modifications` is tagged with `scope=Entity.PROTEIN` to ensure
-        correct serialization.
+        """Assign protein scope to each modification.
 
         Args:
             value (Sequence[Modification]): Modification entries.
 
         Returns:
-            out (Sequence[Modification]): Scoped modification entries.
-
+            Sequence[Modification]: Scoped modification entries.
         """
         for modification in value:
             object.__setattr__(modification, "scope", Entity.PROTEIN)
@@ -325,21 +312,18 @@ class Protein(BaseModel):
 
     @model_validator(mode="after")
     def __validate_modifications(self: Self) -> Self:
-        """Validate post-translational `modifications` against the protein chain `sequence`.
+        """Validate residue modifications against the protein sequence.
 
-        Ensures that each modification targets a valid residue position within
-        the protein chain `sequence`, and that no residue is modified more than
-        once.
+        Ensures that each modification position is within the sequence and that
+        no residue is modified more than once.
 
         Returns:
-            out (Self): The validated protein chain instance.
+            Self: Validated protein chain instance.
 
         Raises:
-            ValueError: If a modification targets a position outside the
-                protein chain `sequence`.
+            ValueError: If a modification position is out of range.
             ValueError: If multiple modifications target the same position.
-
-        """  # noqa: E501
+        """
         length: int = len(self.sequence)
         modified: set[int] = set()
 
@@ -366,19 +350,17 @@ class Protein(BaseModel):
 
     @model_validator(mode="after")
     def __validate_copies(self: Self) -> Self:
-        """Enforce consistency between `id` and `copies`.
+        """Validate consistency between ``id`` and ``copies``.
 
-        If `id` is provided, `copies` is set to `len(id)`. If `copies` was
-        explicitly provided and is inconsistent with `id`, a `ValueError` is
-        raised.
+        If :attr:`id` is provided, :attr:`copies` is set to ``len(id)``. If
+        :attr:`copies` was explicitly provided and is inconsistent with
+        :attr:`id`, a :class:`ValueError` is raised.
 
         Returns:
-            out (Self): The validated protein chain instance.
+            Self: Validated protein chain instance.
 
         Raises:
-            ValueError: If `copies` was explicitly provided and is inconsistent
-                with `id`.
-
+            ValueError: If ``copies`` is inconsistent with ``id``.
         """
         if self.id is None:
             return self
@@ -400,11 +382,9 @@ class Protein(BaseModel):
         self: Self,
         handler: SerializerFunctionWrapHandler,
     ) -> dict[str, Any]:
-        """Serialize the entity using the AlphaFold 3 wrapped representation.
+        """Serialize the entity in wrapped AlphaFold 3 form.
 
         Returns:
-            out (dict[str, Any]): Wrapped entity mapping suitable for the
-                AlphaFold 3 input format.
-
+            dict[str, Any]: Wrapped entity mapping.
         """
         return {self.__class__.__name__.lower(): handler(self)}

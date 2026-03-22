@@ -1,11 +1,10 @@
-"""Structural template model.
+"""Structural template models.
 
-This submodule defines the `Template` model, which represents a single
-structural template entry for a protein chain in an AlphaFold 3 input
-for structure prediction.
+This submodule defines :class:`Template`, which represents a single
+structural template entry for a protein chain in an AlphaFold 3 input.
 
 Exports:
-    Template: Model representing a structural template entry.
+    - :class:`Template`: Structural template entry model.
 """
 
 from __future__ import annotations
@@ -32,12 +31,9 @@ __all__: list[str] = [
 class Template(BaseModel):
     """Structural template specification.
 
-    Represents a single protein structural template for inclusion under
-    `Protein.templates` in an AlphaFold 3 input.
-
-    A template is defined by a mmCIF `structure` either provided inline as a
-    string or as a filesystem path, together with a 0-based mapping between
-    query and template residue indexes.
+    A template is defined by an mmCIF :attr:`structure`, provided either
+    inline as a string or as a filesystem path, together with a 0-based
+    mapping between query and template residue indexes.
 
     Attributes:
         structure (str | Path): Template structure.
@@ -45,13 +41,11 @@ class Template(BaseModel):
 
     Examples:
         Template provided by path.
-        ```python
-        Template(
-            structure=Path("template.cif.gz"),
-            indexes={0: 0, 1: 1, 2: 2, 4: 3, 5: 4, 6: 8},
-        )
-        ```
 
+        >>> Template(
+        ...     structure=Path("template.cif.gz"),
+        ...     indexes={0: 0, 1: 1, 2: 2, 4: 3, 5: 4, 6: 8},
+        ... )
     """
 
     model_config = ConfigDict(
@@ -63,58 +57,53 @@ class Template(BaseModel):
         use_enum_values=False,
     )
 
-    structure: Annotated[
-        str | Path,
-        Field(
-            title="structure",
-            description="Template structure.",
-            validation_alias=AliasChoices("mmcif", "mmcifPath"),
-            exclude=True,
-        ),
-    ]
+    structure: str | Path = Field(
+        title="structure",
+        alias="structure",
+        description="Template structure.",
+        validation_alias=AliasChoices("mmcif", "mmcifPath"),
+        exclude=True,
+    )
+    """Template structure."""
 
-    indexes: Annotated[
-        Mapping[Annotated[int, Field(ge=0)], Annotated[int, Field(ge=0)]],
-        Field(
-            title="indexes",
-            description="Query-to-template residue index mapping.",
-            validation_alias=None,
-            exclude=True,
-        ),
-    ]
+    indexes: Mapping[
+        Annotated[int, Field(ge=0)],
+        Annotated[int, Field(ge=0)],
+    ] = Field(
+        title="indexes",
+        alias="indexes",
+        description="Query-to-template residue index mapping.",
+        exclude=True,
+    )
+    """Query-to-template residue index mapping."""
 
     @computed_field(alias="mmcif", repr=False)
     @property
     def __structure_inline(self) -> str | None:
-        """Expose inline `structure` for serialization.
+        """Expose inline ``structure`` for serialization.
 
         Returns:
-            out (str | None): `structure` when it is a string, otherwise
-                `None`.
-
+            str | None: ``structure`` when it is a string, otherwise ``None``.
         """
         return self.structure if isinstance(self.structure, str) else None
 
     @computed_field(alias="mmcifPath", repr=False)
     @property
     def __structure_path(self) -> Path | None:
-        """Expose `structure` path for serialization.
+        """Expose path-based ``structure`` for serialization.
 
         Returns:
-            out (Path | None): `structure` when it is a path, otherwise
-                `None`.
-
+            Path | None: ``structure`` when it is a path, otherwise ``None``.
         """
         return self.structure if isinstance(self.structure, Path) else None
 
     @computed_field(alias="queryIndices", repr=False)
     @property
     def __mapping_query(self) -> tuple[int, ...]:
-        """Expose query residue indexes from `indexes` for serialization.
+        """Expose query residue indexes for serialization.
 
         Returns:
-            out (tuple[int, ...]): `indexes` keys.
-
+            tuple[int, ...]: Query residue indexes.
         """
         items: tuple[tuple[int, int], ...] = tuple(
             sorted(self.indexes.items(), key=lambda pair: pair[0]),
@@ -124,11 +113,10 @@ class Template(BaseModel):
     @computed_field(alias="templateIndices", repr=False)
     @property
     def __mapping_template(self) -> tuple[int, ...]:
-        """Expose template residue indexes from `indexes` for serialization.
+        """Expose template residue indexes for serialization.
 
         Returns:
-            out (tuple[int, ...]): `indexes` values.
-
+            tuple[int, ...]: Template residue indexes.
         """
         items: tuple[tuple[int, int], ...] = tuple(
             sorted(self.indexes.items(), key=lambda pair: pair[0]),
@@ -142,59 +130,56 @@ class Template(BaseModel):
         data: Any,
         handler: ModelWrapValidatorHandler[Self],
     ) -> Self:
-        """Coerce `structure` to a `Path`.
-
-        Inspects the raw input data. When the input is a mapping containing
-        `mmcifPath`, its value is converted to a `Path` and assigned to
-        `structure` after successful model validation.
+        """Coerce path-based ``structure`` input to :class:`Path`.
 
         Args:
             data (Any): Raw input data.
             handler (ModelWrapValidatorHandler[Self]): Inner model validator.
 
         Returns:
-            out (Self): Validated model with `structure` coerced to `Path` when
-                applicable.
-
+            Self: Validated model with path-based ``structure`` coerced to
+            :class:`Path` when applicable.
         """
         if not isinstance(data, Mapping):
             return handler(data)
 
         alias: str = "mmcifPath"
-        value: object | None = data.get(alias)
+        value: str | None = data.get(alias)
+
         model: Self = handler(data)
+
         if value is not None and isinstance(value, str):
             object.__setattr__(model, "structure", Path(value))
+
         return model
 
     @model_validator(mode="before")
     @classmethod
     def __extract_mapping(cls: type[Self], data: Any) -> Any:
-        """Extract residue `indexes`.
+        """Extract residue index mapping from query and template indices.
 
-        Inspects the raw input data. When the input is a mapping containing
-        `queryIndices` and `templateIndices`, both are removed and replaced by
-        a single `indexes` field constructed from the paired indices.
+        When the input provides ``queryIndices`` and ``templateIndices``,
+        they are replaced by a single :attr:`indexes` mapping.
 
         Args:
             data (Any): Raw input data.
 
         Returns:
-            out (Any): Updated input mapping containing `indexes`, or the
-                original input when `data` is not a mapping.
+            Any: Updated input containing :attr:`indexes`, or the original
+            input when no extraction is needed.
 
         Raises:
-            ValueError: If `queryIndices` or `templateIndices` are missing, or
-                if either value is not a sequence.
-
+            ValueError: If the index fields are missing or not sequences of
+            integers.
+            ValueError: If the two index sequences have different lengths.
         """
         if not isinstance(data, Mapping) or "indexes" in data:
             return data
 
         out: dict[str, Any] = dict(data)
 
-        query = out.pop("queryIndices", None)
-        template = out.pop("templateIndices", None)
+        query: Sequence[int] | Any = out.pop("queryIndices", None)
+        template: Sequence[int] | Any = out.pop("templateIndices", None)
 
         if (
             query is None
@@ -210,9 +195,6 @@ class Template(BaseModel):
                 "indexes."
             )
             raise ValueError(msg)
-
-        query: Sequence[int]
-        template: Sequence[int]
 
         try:
             indexes: dict[int, int] = dict(zip(query, template, strict=True))

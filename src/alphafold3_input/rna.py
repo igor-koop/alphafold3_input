@@ -1,10 +1,10 @@
-"""RNA chain entity model.
+"""RNA chain entity models.
 
-This submodule defines the `RNA` model, which can be used to include
-polymeric RNA entities in an AlphaFold 3 input for structure prediction.
+This submodule defines :class:`RNA`, which can be used to include
+polymeric RNA entities in an AlphaFold 3 input.
 
 Exports:
-    RNA: Model representing an RNA chain entity.
+    - :class:`RNA`: RNA chain entity model.
 """
 
 from __future__ import annotations
@@ -38,20 +38,20 @@ __all__: list[str] = [
 class RNA(BaseModel):
     """RNA chain entity specification.
 
-    Represents a polymeric RNA entity for inclusion under `Job.sequences` in an
-    AlphaFold 3 input.
+    An RNA chain is defined by its nucleotide :attr:`sequence`, optional
+    residue :attr:`modifications`, and optional multiple sequence
+    :attr:`alignment`.
 
-    An RNA chain is defined by its nucleotide `sequence` (A, C, G, and U).
-    Modified residues can be provided through `modifications` as `Modification`
-    entries. Additional entries may be appended using `RNA.modify()`.
+    Modified residues can be provided through :class:`Modification` entries.
+    Additional entries may be appended using :meth:`modify`.
 
-    An RNA chain may include a multiple sequence alignment via `alignment`,
-    either provided inline as a string or as a filesystem path.
+    A multiple sequence alignment may be provided either inline as a string or
+    as a filesystem path.
 
-    Multiple copies of an RNA chain can be defined either by setting `copies`
-    or by providing multiple explicit identifiers via `id`. Optional
-    `description` is supported only when `Job.version` is set to input format
-    version 4.
+    Multiple copies of an RNA chain can be defined either by setting
+    :attr:`copies` or by providing multiple explicit identifiers in
+    :attr:`id`. The optional :attr:`description` field is supported only when
+    :attr:`Job.version` is set to :attr:`Version.IV`.
 
     Attributes:
         id (str | Sequence[str] | None): RNA chain identifier(s).
@@ -59,45 +59,39 @@ class RNA(BaseModel):
         sequence (str): RNA chain nucleotide sequence.
         modifications (Sequence[Modification]): RNA chain residue
             modifications.
-        alignment (str | Path | None): Multiple sequence alignment for RNA
-            chain.
+        alignment (str | Path | None): Multiple sequence alignment.
         copies (int): Number of RNA chain copies.
 
     Examples:
         RNA chain with a description.
-        ```python
-        RNA(
-            description="Ribosome-binding site from T7 phage, gene 10",
-            sequence="UUAACUUUAAGAAGGAG",
-        )
-        ```
+
+        >>> RNA(
+        ...     description="Ribosome-binding site from T7 phage, gene 10",
+        ...     sequence="UUAACUUUAAGAAGGAG",
+        ... )
 
         Multiple copies of an RNA chain.
-        ```python
-        RNA(
-            sequence="AAGGACGGGUCC",
-            copies=2
-        )
-        ```
+
+        >>> RNA(
+        ...     sequence="AAGGACGGGUCC",
+        ...     copies=2,
+        ... )
 
         RNA chain with modified residues.
-        ```python
-        tetramer = RNA(sequence="AGCU")
-        tetramer.modify(
-            Modification(type="2MG", position=1),
-            Modification(type="5MC", position=4),
-        )
-        ```
+
+        >>> tetramer = RNA(sequence="AGCU")
+        >>> tetramer.modify(
+        ...     Modification(type="2MG", position=1),
+        ...     Modification(type="5MC", position=4),
+        ... )
 
         RNA chain with an alignment file.
-        ```python
-        RNA(
-            id=["A", "B"],
-            sequence="ACAUGAGGAUCACCCAUGU",
-            alignment=Path("alignment.a3m"),
-        )
-        ```
 
+        >>> RNA(
+        ...     id=["A", "B"],
+        ...     sequence="ACAUGAGGAUCACCCAUGU",
+        ...     alignment=Path("alignment.a3m"),
+        ... )
     """
 
     model_config = ConfigDict(
@@ -109,111 +103,107 @@ class RNA(BaseModel):
         use_enum_values=False,
     )
 
-    id: Annotated[
+    id: (
         Annotated[str, StringConstraints(pattern="^[A-Z]+$")]
         | Sequence[Annotated[str, StringConstraints(pattern="^[A-Z]+$")]]
-        | None,
-        Field(
-            title="id",
-            description="RNA chain identifier(s).",
-            min_length=1,
-            validation_alias=AliasPath("rna", "id"),
-            serialization_alias="id",
-        ),
-    ] = None
+        | None
+    ) = Field(
+        title="id",
+        alias="id",
+        description="RNA chain identifier(s).",
+        min_length=1,
+        validation_alias=AliasPath("rna", "id"),
+        serialization_alias="id",
+        default=None,
+    )
+    """RNA chain identifier(s)."""
 
-    description: Annotated[
-        str | None,
-        Field(
-            title="description",
-            description="Free-text RNA chain description.",
-            validation_alias="description",
-            serialization_alias="description",
-        ),
-    ] = None
+    description: str | None = Field(
+        title="description",
+        alias="description",
+        description="Free-text RNA chain description.",
+        validation_alias=AliasPath("rna", "description"),
+        serialization_alias="description",
+        default=None,
+    )
+    """Free-text RNA chain description."""
 
-    sequence: Annotated[
-        Annotated[str, StringConstraints(pattern="^[ACGU]+$")],
-        Field(
-            title="sequence",
-            description="RNA chain nucleotide sequence.",
-            min_length=1,
-            validation_alias=AliasPath("rna", "sequence"),
-            serialization_alias="sequence",
-        ),
-    ]
+    sequence: Annotated[str, StringConstraints(pattern="^[ACGU]+$")] = Field(
+        title="sequence",
+        alias="sequence",
+        description="RNA chain nucleotide sequence.",
+        min_length=1,
+        validation_alias=AliasPath("rna", "sequence"),
+        serialization_alias="sequence",
+    )
+    """RNA chain nucleotide sequence."""
 
-    modifications: Annotated[
-        Sequence[Modification],
-        Field(
-            title="modifications",
-            description="RNA chain residue modifications.",
-            validation_alias=AliasPath("rna", "modifications"),
-            serialization_alias="modifications",
-        ),
-    ] = Field(default_factory=tuple)
+    modifications: Sequence[Modification] = Field(
+        title="modifications",
+        alias="modifications",
+        description="RNA chain residue modifications.",
+        validation_alias=AliasPath("rna", "modifications"),
+        serialization_alias="modifications",
+        default_factory=tuple,
+    )
+    """RNA chain residue modifications."""
 
-    alignment: Annotated[
-        str | Path | None,
-        Field(
-            title="alignment",
-            description="Multiple sequence alignment for RNA chain.",
-            validation_alias=AliasChoices(
-                AliasPath("rna", "unpairedMsa"),
-                AliasPath("rna", "unpairedMsaPath"),
-            ),
-            exclude=True,
+    alignment: str | Path | None = Field(
+        title="alignment",
+        alias="alignment",
+        description="Multiple sequence alignment for RNA chain.",
+        validation_alias=AliasChoices(
+            AliasPath("rna", "unpairedMsa"),
+            AliasPath("rna", "unpairedMsaPath"),
         ),
-    ] = None
+        exclude=True,
+        default=None,
+    )
+    """Multiple sequence alignment for RNA chain."""
 
-    copies: Annotated[
-        int,
-        Field(
-            title="copies",
-            description="Number of RNA chain copies.",
-            ge=1,
-            validation_alias="copies",
-            exclude=True,
-            repr=False,
-        ),
-    ] = 1
+    copies: int = Field(
+        title="copies",
+        alias="copies",
+        description="Number of RNA chain copies.",
+        ge=1,
+        validation_alias="copies",
+        exclude=True,
+        repr=False,
+        default=1,
+    )
+    """Number of RNA chain copies."""
 
     @computed_field(alias="unpairedMsa", repr=False)
     @property
     def __alignment_inline(self) -> str | None:
-        """Expose inline `alignment` for serialization.
+        """Expose inline ``alignment`` for serialization.
 
         Returns:
-            out (str | None): `alignment` when it is a string,
-                otherwise `None`.
-
+            str | None: ``alignment`` when it is a string, otherwise ``None``.
         """
         return self.alignment if isinstance(self.alignment, str) else None
 
     @computed_field(alias="unpairedMsaPath", repr=False)
     @property
     def __alignment_path(self) -> Path | None:
-        """Expose `alignment` path for serialization.
+        """Expose path-based ``alignment`` for serialization.
 
         Returns:
-            out (Path | None): `alignment` when it is a path, otherwise
-                `None`.
-
+            Path | None: ``alignment`` when it is a path, otherwise ``None``.
         """
         return self.alignment if isinstance(self.alignment, Path) else None
 
     def modify(self: Self, *modifications: Modification) -> Self:
-        """Append one or more residue modifications to an RNA chain.
+        """Append residue modifications to the RNA chain.
 
         Args:
             *modifications (Modification): One or more modifications to add.
 
         Returns:
-            out (Self): RNA chain entity with modified residues.
+            Self: RNA chain with appended modifications.
 
         Raises:
             TypeError: If no modifications were provided.
-
         """
         if not modifications:
             msg: str = (
@@ -221,7 +211,9 @@ class RNA(BaseModel):
             )
             raise TypeError(msg)
 
-        self.modifications = tuple(self.modifications) + tuple(modifications)
+        self.modifications: tuple[Modification, ...] = tuple(
+            self.modifications,
+        ) + tuple(modifications)
         return self
 
     @model_validator(mode="wrap")
@@ -231,29 +223,32 @@ class RNA(BaseModel):
         data: Any,
         handler: ModelWrapValidatorHandler[Self],
     ) -> Self:
-        """Coerce `alignment` to a `Path`.
-
-        Inspects the raw input data. When the input is a mapping containing
-        `unpairedMsaPath`, its value is converted to a `Path` and assigned to
-        `alignment` after successful model validation.
+        """Coerce path-based ``alignment`` input to :class:`Path`.
 
         Args:
             data (Any): Raw input data.
             handler (ModelWrapValidatorHandler[Self]): Inner model validator.
 
         Returns:
-            out (Self): Validated model with `alignment` coerced to `Path` when
-                applicable.
-
+            Self: Validated model with path-based ``alignment`` coerced to
+            :class:`Path` when applicable.
         """
         if not isinstance(data, Mapping):
             return handler(data)
 
         alias: str = "unpairedMsaPath"
-        value: object | None = data.get(alias)
+        value: str | None = None
+
+        if isinstance(data.get("rna"), Mapping):
+            value: str | None = data["rna"].get(alias)
+        else:
+            value: str | None = data.get(alias)
+
         model: Self = handler(data)
+
         if value is not None and isinstance(value, str):
             object.__setattr__(model, "alignment", Path(value))
+
         return model
 
     @field_validator("modifications", mode="after")
@@ -262,18 +257,13 @@ class RNA(BaseModel):
         cls: type[Self],
         value: Sequence[Modification],
     ) -> Sequence[Modification]:
-        """Assign RNA scope to `modifications`.
-
-        `Modification` model supports multiple polymer contexts, so each entry
-        in `modifications` is tagged with `scope=Entity.RNA` to ensure correct
-        serialization.
+        """Assign RNA scope to each modification.
 
         Args:
             value (Sequence[Modification]): Modification entries.
 
         Returns:
-            out (Sequence[Modification]): Scoped modification entries.
-
+            Sequence[Modification]: Scoped modification entries.
         """
         for modification in value:
             object.__setattr__(modification, "scope", Entity.RNA)
@@ -281,20 +271,17 @@ class RNA(BaseModel):
 
     @model_validator(mode="after")
     def __validate_modifications(self: Self) -> Self:
-        """Validate residue `modifications` against the RNA chain `sequence`.
+        """Validate residue modifications against the RNA sequence.
 
-        Ensures that each modification targets a valid residue position within
-        the RNA chain `sequence`, and that no residue is modified more than
-        once.
+        Ensures that each modification position is within the sequence and that
+        no residue is modified more than once.
 
         Returns:
-            out (Self): The validated RNA chain instance.
+            Self: Validated RNA chain instance.
 
         Raises:
-            ValueError: If a modification targets a position outside the
-                RNA chain `sequence`.
+            ValueError: If a modification position is out of range.
             ValueError: If multiple modifications target the same position.
-
         """
         length: int = len(self.sequence)
         modified: set[int] = set()
@@ -321,19 +308,17 @@ class RNA(BaseModel):
 
     @model_validator(mode="after")
     def __validate_copies(self: Self) -> Self:
-        """Enforce consistency between `id` and `copies`.
+        """Validate consistency between ``id`` and ``copies``.
 
-        If `id` is provided, `copies` is set to `len(id)`. If `copies` was
-        explicitly provided and is inconsistent with `id`, a `ValueError` is
-        raised.
+        If :attr:`id` is provided, :attr:`copies` is set to ``len(id)``. If
+        :attr:`copies` was explicitly provided and is inconsistent with
+        :attr:`id`, a :class:`ValueError` is raised.
 
         Returns:
-            out (Self): The validated RNA chain instance.
+            Self: Validated RNA chain instance.
 
         Raises:
-            ValueError: If `copies` was explicitly provided and is inconsistent
-                with `id`.
-
+            ValueError: If ``copies`` is inconsistent with ``id``.
         """
         if self.id is None:
             return self
@@ -355,11 +340,9 @@ class RNA(BaseModel):
         self: Self,
         handler: SerializerFunctionWrapHandler,
     ) -> dict[str, Any]:
-        """Serialize the entity using the AlphaFold 3 wrapped representation.
+        """Serialize the entity in wrapped AlphaFold 3 form.
 
         Returns:
-            out (dict[str, Any]): Wrapped entity mapping suitable for the
-                AlphaFold 3 input format.
-
+            dict[str, Any]: Wrapped entity mapping.
         """
         return {self.__class__.__name__.lower(): handler(self)}

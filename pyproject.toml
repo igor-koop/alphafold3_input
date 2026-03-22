@@ -1,7 +1,10 @@
 [project]
 name = "alphafold3_input"
-version = "0.1.0"
+version = "0.2.0"
 description = "AlphaFold 3 input schema models."
+authors = [
+    { name = "Igor Koop" },
+]
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -22,7 +25,49 @@ build-backend = "uv_build"
 module-root = "src"
 module-name = "alphafold3_input"
 
+[dependency-groups]
+dev = [
+    "furo>=2025.12.19",
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+    "ruff>=0.15.7",
+    "sphinx>=9.1.0",
+    "sphinx-autobuild>=2025.8.25",
+    "ty>=0.0.24",
+]
+
+[tool.ruff]
+line-length = 80
+target-version = "py312"
+src = ["src", "tests"]
+
 [tool.ruff.lint]
 select = ["ALL"]
 fixable = ["ALL"]
-ignore = ["TC001", "ANN401"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["D100", "PLR2004", "S101"]
+"docs/**/*.py" = ["A001", "B010", "FBT001", "FBT002", "INP001", "PLR0913"]
+"src/**/*.py" = ["ANN401", "TC001", "TC002", "TC003"]
+
+[tool.pytest.ini_options]
+minversion = "9.0"
+testpaths = ["tests"]
+addopts = [
+    "--strict-config",
+    "--strict-markers",
+    "--cov=alphafold3_input",
+    "--cov-report=term-missing",
+    "--cov-fail-under=90",
+]
+
+[tool.coverage.run]
+source = ["alphafold3_input"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+
