@@ -5,7 +5,8 @@
 [![Coverage](https://codecov.io/gh/igor-koop/alphafold3_input/branch/main/graph/badge.svg)](https://codecov.io/gh/igor-koop/alphafold3_input)
 [![Lint](https://img.shields.io/badge/linting-ruff-d7ff64)](https://docs.astral.sh/ruff/)
 [![Type](https://img.shields.io/badge/typing-ty-7c3aed)](https://docs.astral.sh/ty/)
-[![Ations](https://github.com/igor-koop/alphafold3_input/actions/workflows/ci-pages.yml/badge.svg)](https://github.com/igor-koop/alphafold3_input/actions/workflows/ci-pages.yml)
+[![Actions](https://github.com/igor-koop/alphafold3_input/actions/workflows/actions.yml/badge.svg)](https://github.com/igor-koop/alphafold3_input/actions/workflows/actions.yml)
+
 
 Pythonic, object-oriented models for constructing **AlphaFold 3** input files.
 
