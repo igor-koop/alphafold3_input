@@ -2,7 +2,7 @@
 
 [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://igor-koop.github.io/alphafold3_input/)
 [![License](https://img.shields.io/github/license/igor-koop/alphafold3_input)](https://github.com/igor-koop/alphafold3_input/blob/main/LICENSE)
-[![Coverage](https://codecov.io/gh/igor-koop/alphafold3_input/branch/main/graph/badge.svg)](https://codecov.io/gh/igor-koop/alphafold3_input)
+[![Coverage](https://codecov.io/gh/igor-koop/alphafold3_input/graph/badge.svg?token=9906JN8BN0)](https://codecov.io/gh/igor-koop/alphafold3_input)
 [![Lint](https://img.shields.io/badge/linting-ruff-d7ff64)](https://docs.astral.sh/ruff/)
 [![Type](https://img.shields.io/badge/typing-ty-7c3aed)](https://docs.astral.sh/ty/)
 [![Actions](https://github.com/igor-koop/alphafold3_input/actions/workflows/actions.yml/badge.svg)](https://github.com/igor-koop/alphafold3_input/actions/workflows/actions.yml)
