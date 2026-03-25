@@ -1,0 +1,42 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-yaml
+      - id: check-toml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
+  - repo: local
+    hooks:
+      - id: format
+        name: format (ruff)
+        entry: uv run ruff format
+        language: system
+        pass_filenames: false
+        stages: [pre-commit, pre-push]
+        types: [python]
+
+      - id: lint
+        name: lint (ruff)
+        entry: uv run ruff check --fix
+        language: system
+        pass_filenames: false
+        stages: [pre-commit, pre-push]
+        types: [python]
+
+      - id: type
+        name: type (ty)
+        entry: uv run ty check
+        language: system
+        pass_filenames: false
+        stages: [pre-commit, pre-push]
+        types: [python]
+
+      - id: test
+        name: test (pytest)
+        entry: uv run pytest --cov
+        language: system
+        pass_filenames: false
+        stages: [pre-commit, pre-push]
+        types: [python]

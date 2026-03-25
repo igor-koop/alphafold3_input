@@ -6,6 +6,7 @@
 !.git*
 !.gitignore
 !.gitattributes
+!.pre-commit-config.yaml
 
 # Include specific configuration files
 !.env.example

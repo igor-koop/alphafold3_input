@@ -44,9 +44,11 @@ src = ["src", "tests"]
 [tool.ruff.lint]
 select = ["ALL"]
 fixable = ["ALL"]
+ignore = ["COM812"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "pep257"
+
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = ["D100", "PLR2004", "S101"]
@@ -70,4 +72,3 @@ source = ["alphafold3_input"]
 [tool.coverage.report]
 show_missing = true
 skip_empty = true
-

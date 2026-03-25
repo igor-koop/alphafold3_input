@@ -11,6 +11,9 @@ permissions:
   id-token: write
 
 jobs:
+  format:
+    uses: ./.github/workflows/format.yml
+
   lint:
     uses: ./.github/workflows/lint.yml
 
