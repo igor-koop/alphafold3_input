@@ -181,7 +181,7 @@ class TestReindex:
         )
 
         with pytest.raises(ValueError, match="Unexpected alignment operation"):
-            reindex(template=template, operations=("weird",))  # type: ignore[arg-type]
+            reindex(template=template, operations=("weird",))  # ty:ignore[invalid-argument-type]
 
     def test_validate_missing_positions(self: Self) -> None:
         """Validate that unmapped reference positions are dropped."""

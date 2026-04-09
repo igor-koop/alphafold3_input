@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Annotated, Any, Self
+from typing import Annotated, Any, Self, cast
 
 from pydantic import (
     AliasChoices,
@@ -197,7 +197,9 @@ class Template(BaseModel):
             raise ValueError(msg)
 
         try:
-            indexes: dict[int, int] = dict(zip(query, template, strict=True))
+            indexes: dict[int, int] = cast(
+                "dict[int, int]", dict(zip(query, template, strict=True))
+            )
         except ValueError as e:
             msg = (
                 "Invalid template indexes: `queryIndices` and "
