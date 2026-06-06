@@ -1,0 +1,715 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cdn.jsdelivr.net/gh/igor-koop/alphafold3_input@main/alphafold3-input.schema.json",
+  "title": "AlphaFold 3 input JSON",
+  "description": "JSON Schema for the AlphaFold 3 custom input format, based on the official AlphaFold 3 input documentation and this package's Pydantic models.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "name",
+    "modelSeeds",
+    "sequences",
+    "dialect",
+    "version"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "format": "uri-reference",
+      "description": "JSON Schema URI for editor validation."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Job name."
+    },
+    "modelSeeds": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 4294967295
+      },
+      "description": "Random seeds. Must contain at least one positive 32-bit integer."
+    },
+    "sequences": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "#/$defs/proteinSequence"
+          },
+          {
+            "$ref": "#/$defs/rnaSequence"
+          },
+          {
+            "$ref": "#/$defs/dnaSequence"
+          },
+          {
+            "$ref": "#/$defs/ligandSequence"
+          }
+        ]
+      },
+      "description": "Entities included in the job. Must contain at least one wrapped protein, RNA, DNA, or ligand entity."
+    },
+    "bondedAtomPairs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/bond"
+      },
+      "description": "Covalent bonds between atom pairs. Each bond is a pair of atom addresses."
+    },
+    "userCCD": {
+      "type": "string",
+      "description": "Custom chemical components dictionary. Mutually exclusive with userCCDPath."
+    },
+    "userCCDPath": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Custom chemical components dictionary path. Requires input format version 3 or later and is mutually exclusive with userCCD."
+    },
+    "dialect": {
+      "const": "alphafold3",
+      "description": "Input format dialect. Must be alphafold3."
+    },
+    "version": {
+      "type": "integer",
+      "enum": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "description": "Input format version. Must be 1, 2, 3, or 4."
+    }
+  },
+  "not": {
+    "required": [
+      "userCCD",
+      "userCCDPath"
+    ]
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "version"
+        ],
+        "properties": {
+          "version": {
+            "const": 1
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "sequences": {
+            "items": {
+              "$ref": "#/$defs/version1Sequence"
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "version"
+        ],
+        "properties": {
+          "version": {
+            "enum": [
+              1,
+              2
+            ]
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "required": [
+            "userCCDPath"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "version"
+        ],
+        "properties": {
+          "version": {
+            "enum": [
+              1,
+              2,
+              3
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "sequences": {
+            "items": {
+              "$ref": "#/$defs/preVersion4Sequence"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "chainId": {
+      "type": "string",
+      "pattern": "^[A-Z]+$",
+      "description": "Entity identifier. Must contain uppercase letters only."
+    },
+    "chainIds": {
+      "description": "Entity identifier(s). Use a string for one entity copy or an array for homomeric copies.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/chainId"
+        },
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/chainId"
+          },
+          "uniqueItems": true
+        }
+      ]
+    },
+    "proteinSequence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protein"
+      ],
+      "properties": {
+        "protein": {
+          "$ref": "#/$defs/protein"
+        }
+      }
+    },
+    "rnaSequence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rna"
+      ],
+      "properties": {
+        "rna": {
+          "$ref": "#/$defs/rna"
+        }
+      }
+    },
+    "dnaSequence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dna"
+      ],
+      "properties": {
+        "dna": {
+          "$ref": "#/$defs/dna"
+        }
+      }
+    },
+    "ligandSequence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ligand"
+      ],
+      "properties": {
+        "ligand": {
+          "$ref": "#/$defs/ligand"
+        }
+      }
+    },
+    "version1Sequence": {
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "protein"
+            ]
+          },
+          "then": {
+            "properties": {
+              "protein": {
+                "allOf": [
+                  {
+                    "not": {
+                      "required": [
+                        "unpairedMsaPath"
+                      ]
+                    }
+                  },
+                  {
+                    "not": {
+                      "required": [
+                        "pairedMsaPath"
+                      ]
+                    }
+                  },
+                  {
+                    "properties": {
+                      "templates": {
+                        "oneOf": [
+                          {
+                            "type": "null"
+                          },
+                          {
+                            "type": "array",
+                            "items": {
+                              "not": {
+                                "required": [
+                                  "mmcifPath"
+                                ]
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "rna"
+            ]
+          },
+          "then": {
+            "properties": {
+              "rna": {
+                "not": {
+                  "required": [
+                    "unpairedMsaPath"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "preVersion4Sequence": {
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "protein"
+            ]
+          },
+          "then": {
+            "properties": {
+              "protein": {
+                "not": {
+                  "required": [
+                    "description"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "rna"
+            ]
+          },
+          "then": {
+            "properties": {
+              "rna": {
+                "not": {
+                  "required": [
+                    "description"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "dna"
+            ]
+          },
+          "then": {
+            "properties": {
+              "dna": {
+                "not": {
+                  "required": [
+                    "description"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "ligand"
+            ]
+          },
+          "then": {
+            "properties": {
+              "ligand": {
+                "not": {
+                  "required": [
+                    "description"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "protein": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "sequence"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/chainIds",
+          "description": "Protein chain identifier(s)."
+        },
+        "sequence": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[ACDEFGHIKLMNPQRSTVWY]+$",
+          "description": "Protein chain amino acid sequence. Must use standard one-letter amino acid codes."
+        },
+        "modifications": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/proteinModification"
+          },
+          "description": "Protein chain residue modifications."
+        },
+        "description": {
+          "type": "string",
+          "description": "Free-text protein chain description. Requires input format version 4."
+        },
+        "unpairedMsa": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Multiple sequence alignment for protein chain. Mutually exclusive with unpairedMsaPath."
+        },
+        "unpairedMsaPath": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Multiple sequence alignment path for protein chain. Requires input format version 2 or later and is mutually exclusive with unpairedMsa."
+        },
+        "pairedMsa": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Paired multiple sequence alignment for protein chain. Mutually exclusive with pairedMsaPath."
+        },
+        "pairedMsaPath": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Paired multiple sequence alignment path for protein chain. Requires input format version 2 or later and is mutually exclusive with pairedMsa."
+        },
+        "templates": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/template"
+              }
+            }
+          ],
+          "description": "Structural templates for protein chain. Use an empty array to disable template search."
+        }
+      },
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "unpairedMsa",
+              "unpairedMsaPath"
+            ]
+          }
+        },
+        {
+          "not": {
+            "required": [
+              "pairedMsa",
+              "pairedMsaPath"
+            ]
+          }
+        }
+      ]
+    },
+    "rna": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "sequence"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/chainIds",
+          "description": "RNA chain identifier(s)."
+        },
+        "sequence": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[ACGU]+$",
+          "description": "RNA chain nucleotide sequence. Must contain only A, C, G, and U."
+        },
+        "modifications": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/baseModification"
+          },
+          "description": "RNA chain residue modifications."
+        },
+        "description": {
+          "type": "string",
+          "description": "Free-text RNA chain description. Requires input format version 4."
+        },
+        "unpairedMsa": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Multiple sequence alignment for RNA chain. Mutually exclusive with unpairedMsaPath."
+        },
+        "unpairedMsaPath": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Multiple sequence alignment path for RNA chain. Requires input format version 2 or later and is mutually exclusive with unpairedMsa."
+        }
+      },
+      "not": {
+        "required": [
+          "unpairedMsa",
+          "unpairedMsaPath"
+        ]
+      }
+    },
+    "dna": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "sequence"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/chainIds",
+          "description": "DNA chain identifier(s)."
+        },
+        "sequence": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[ACGT]+$",
+          "description": "DNA chain nucleotide sequence. Must contain only A, C, G, and T."
+        },
+        "modifications": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/baseModification"
+          },
+          "description": "DNA chain residue modifications."
+        },
+        "description": {
+          "type": "string",
+          "description": "Free-text DNA chain description. Requires input format version 4."
+        }
+      }
+    },
+    "ligand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/chainIds",
+          "description": "Ligand identifier(s)."
+        },
+        "description": {
+          "type": "string",
+          "description": "Free-text ligand description. Requires input format version 4."
+        },
+        "ccdCodes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Ligand definition as CCD code(s). Mutually exclusive with smiles."
+        },
+        "smiles": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[0-9\\-=#/\\\\@$+()%.*:\\[\\]BCEFHIKLNOPRSTZbceinos]+$",
+          "description": "Ligand definition as SMILES. Mutually exclusive with ccdCodes."
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "ccdCodes"
+          ]
+        },
+        {
+          "required": [
+            "smiles"
+          ]
+        }
+      ]
+    },
+    "proteinModification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ptmType",
+        "ptmPosition"
+      ],
+      "properties": {
+        "ptmType": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Modification CCD code."
+        },
+        "ptmPosition": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Modification position in the parent protein sequence. Must be 1-based."
+        }
+      }
+    },
+    "baseModification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "modificationType",
+        "basePosition"
+      ],
+      "properties": {
+        "modificationType": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Modification CCD code."
+        },
+        "basePosition": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Modification position in the parent nucleic acid sequence. Must be 1-based."
+        }
+      }
+    },
+    "template": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "queryIndices",
+        "templateIndices"
+      ],
+      "properties": {
+        "mmcif": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Template structure. Inline mmCIF content, mutually exclusive with mmcifPath."
+        },
+        "mmcifPath": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Template structure path. Requires input format version 2 or later and is mutually exclusive with mmcif."
+        },
+        "queryIndices": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "description": "Query residue indexes. Must be 0-based and have the same length as templateIndices."
+        },
+        "templateIndices": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "description": "Template residue indexes. Must be 0-based and have the same length as queryIndices."
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "mmcif"
+          ]
+        },
+        {
+          "required": [
+            "mmcifPath"
+          ]
+        }
+      ]
+    },
+    "atom": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "description": "Atom address. Must contain exactly three values: entity identifier, 1-based residue index, and atom name.",
+      "prefixItems": [
+        {
+          "$ref": "#/$defs/chainId"
+        },
+        {
+          "type": "integer",
+          "minimum": 1
+        },
+        {
+          "type": "string",
+          "minLength": 1
+        }
+      ]
+    },
+    "bond": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "description": "Covalent bond between two atoms. Must contain exactly two atom addresses.",
+      "prefixItems": [
+        {
+          "$ref": "#/$defs/atom"
+        },
+        {
+          "$ref": "#/$defs/atom"
+        }
+      ]
+    }
+  }
+}

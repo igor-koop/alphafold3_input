@@ -30,6 +30,7 @@ def test_exports_match() -> None:
         "Dialect",
         "Entity",
         "Job",
+        "JSON_SCHEMA_URL",
         "Ligand",
         "Modification",
         "Operation",

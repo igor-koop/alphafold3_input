@@ -12,6 +12,8 @@ refer to the official `AlphaFold 3 input specification
 <https://github.com/google-deepmind/alphafold3/blob/main/docs/input.md>`_.
 
 Exports:
+    - :data:`JSON_SCHEMA_URL`: canonical JSON Schema URL for editor \
+        validation.
     - :class:`Job`, :class:`Dialect`, :class:`Version`: top-level job model \
         and input format enums.
     - :class:`DNA`, :class:`RNA`, :class:`Protein`, :class:`Ligand`: \
@@ -28,7 +30,7 @@ Exports:
 
 from .bond import Atom, Bond
 from .dna import DNA
-from .job import Dialect, Job, Version
+from .job import JSON_SCHEMA_URL, Dialect, Job, Version
 from .ligand import Ligand
 from .modification import Entity, Modification
 from .protein import Protein
@@ -38,6 +40,7 @@ from .utils import Operation, ccd, component, realign, reindex, trace
 
 __all__: list[str] = [
     "DNA",
+    "JSON_SCHEMA_URL",
     "RNA",
     "Atom",
     "Bond",

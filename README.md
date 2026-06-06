@@ -10,18 +10,36 @@
 
 Pythonic, object-oriented models for constructing **AlphaFold 3** input files.
 
-This package provides typed models and utilities that abstract the AlphaFold 3
-JSON input format into a clean, validated Python interface.
+This package provides typed models and utilities that abstract the AlphaFold 3 JSON input format into a clean, validated Python interface.
 
-For details on the underlying specification, see the official
-[AlphaFold 3 input specification](https://github.com/google-deepmind/alphafold3/blob/main/docs/input.md).
+For details on the underlying specification, see the official [AlphaFold 3 input specification](https://github.com/google-deepmind/alphafold3/blob/main/docs/input.md).
 
 ---
 
 ## Installation
 
+Install the latest published release from PyPI:
+
+```bash
+uv add alphafold3_input
+```
+
+or:
+
+```bash
+pip install alphafold3_input
+```
+
+Install the current development version directly from GitHub:
+
 ```bash
 uv add git+https://github.com/igor-koop/alphafold3_input
+```
+
+or:
+
+```bash
+pip install "git+https://github.com/igor-koop/alphafold3_input"
 ```
 
 ## Documentation

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Self
+from typing import Self, cast
 
 import pytest
 from pydantic import ValidationError
@@ -165,11 +165,11 @@ class TestDNA:
         )
 
         data: dict[str, object] = dna.model_dump()
-
         assert "dna" in data
+        assert isinstance(data["dna"], dict)
+        assert all(isinstance(key, str) for key in data["dna"])
 
-        wrapped: object = data["dna"]
-        assert isinstance(wrapped, dict)
+        wrapped: dict[str, object] = cast("dict[str, object]", data["dna"])
         assert wrapped["id"] is None
         assert wrapped["description"] == "EcoRI site"
         assert wrapped["sequence"] == "GAATTC"

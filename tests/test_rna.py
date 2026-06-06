@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Self, cast
 
 import pytest
 from pydantic import ValidationError
@@ -205,11 +205,13 @@ class TestRNA:
             by_alias=True,
             exclude_none=True,
         )
-
         assert "rna" in data
         assert isinstance(data["rna"], dict)
-        assert data["rna"]["unpairedMsa"] == ">query\nACGU\n"
-        assert "unpairedMsaPath" not in data["rna"]
+        assert all(isinstance(key, str) for key in data["rna"])
+
+        wrapped: dict[str, object] = cast("dict[str, object]", data["rna"])
+        assert wrapped["unpairedMsa"] == ">query\nACGU\n"
+        assert "unpairedMsaPath" not in wrapped
 
     def test_serialize_alignment_path(self: Self, tmp_path: Path) -> None:
         """Validate serialization of path-based alignments."""
@@ -223,11 +225,13 @@ class TestRNA:
             by_alias=True,
             exclude_none=True,
         )
-
         assert "rna" in data
         assert isinstance(data["rna"], dict)
-        assert data["rna"]["unpairedMsaPath"] == path
-        assert "unpairedMsa" not in data["rna"]
+        assert all(isinstance(key, str) for key in data["rna"])
+
+        wrapped: dict[str, object] = cast("dict[str, object]", data["rna"])
+        assert wrapped["unpairedMsaPath"] == path
+        assert "unpairedMsa" not in wrapped
 
     def test_serialize(self: Self) -> None:
         """Validate wrapped serialization of RNA entities."""
@@ -242,11 +246,13 @@ class TestRNA:
             by_alias=True,
             exclude_none=True,
         )
-
         assert "rna" in data
         assert isinstance(data["rna"], dict)
-        assert data["rna"]["id"] == ["A"]
-        assert data["rna"]["description"] == "Example RNA"
-        assert data["rna"]["sequence"] == "ACGU"
-        assert "modifications" in data["rna"]
-        assert "copies" not in data["rna"]
+        assert all(isinstance(key, str) for key in data["rna"])
+
+        wrapped: dict[str, object] = cast("dict[str, object]", data["rna"])
+        assert wrapped["id"] == ["A"]
+        assert wrapped["description"] == "Example RNA"
+        assert wrapped["sequence"] == "ACGU"
+        assert "modifications" in wrapped
+        assert "copies" not in wrapped

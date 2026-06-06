@@ -20,6 +20,11 @@ Reference
 
 .. currentmodule:: alphafold3_input
 
+Constants
+^^^^^^^^^
+
+.. autodata:: alphafold3_input.job.JSON_SCHEMA_URL
+
 Models
 ^^^^^^
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Self, cast
 
 import pytest
 from pydantic import ValidationError
@@ -226,12 +226,14 @@ class TestProtein:
             by_alias=True,
             exclude_none=True,
         )
-
         assert "protein" in data
         assert isinstance(data["protein"], dict)
-        assert data["protein"]["unpairedMsa"] == ">query\nACDE\n"
-        assert data["protein"]["pairedMsa"] == ""
-        assert "unpairedMsaPath" not in data["protein"]
+        assert all(isinstance(key, str) for key in data["protein"])
+
+        wrapped: dict[str, object] = cast("dict[str, object]", data["protein"])
+        assert wrapped["unpairedMsa"] == ">query\nACDE\n"
+        assert wrapped["pairedMsa"] == ""
+        assert "unpairedMsaPath" not in wrapped
 
     def test_serialize_alignment_path(self: Self, tmp_path: Path) -> None:
         """Validate serialization of path-based alignments."""
@@ -245,12 +247,14 @@ class TestProtein:
             by_alias=True,
             exclude_none=True,
         )
-
         assert "protein" in data
         assert isinstance(data["protein"], dict)
-        assert data["protein"]["unpairedMsaPath"] == path
-        assert data["protein"]["pairedMsa"] == ""
-        assert "unpairedMsa" not in data["protein"]
+        assert all(isinstance(key, str) for key in data["protein"])
+
+        wrapped: dict[str, object] = cast("dict[str, object]", data["protein"])
+        assert wrapped["unpairedMsaPath"] == path
+        assert wrapped["pairedMsa"] == ""
+        assert "unpairedMsa" not in wrapped
 
     def test_serialize_templates(self: Self, tmp_path: Path) -> None:
         """Validate serialization of structural templates."""
@@ -269,11 +273,14 @@ class TestProtein:
             by_alias=True,
             exclude_none=True,
         )
-
         assert "protein" in data
         assert isinstance(data["protein"], dict)
-        assert "templates" in data["protein"]
-        assert len(data["protein"]["templates"]) == 1
+        assert all(isinstance(key, str) for key in data["protein"])
+
+        wrapped: dict[str, object] = cast("dict[str, object]", data["protein"])
+        assert "templates" in wrapped
+        assert isinstance(wrapped["templates"], tuple)
+        assert len(wrapped["templates"]) == 1
 
     def test_serialize(self: Self) -> None:
         """Validate wrapped serialization of protein entities."""
@@ -288,11 +295,13 @@ class TestProtein:
             by_alias=True,
             exclude_none=True,
         )
-
         assert "protein" in data
         assert isinstance(data["protein"], dict)
-        assert data["protein"]["id"] == ["A"]
-        assert data["protein"]["description"] == "Example protein"
-        assert data["protein"]["sequence"] == "ACDE"
-        assert "modifications" in data["protein"]
-        assert "copies" not in data["protein"]
+        assert all(isinstance(key, str) for key in data["protein"])
+
+        wrapped: dict[str, object] = cast("dict[str, object]", data["protein"])
+        assert wrapped["id"] == ["A"]
+        assert wrapped["description"] == "Example protein"
+        assert wrapped["sequence"] == "ACDE"
+        assert "modifications" in wrapped
+        assert "copies" not in wrapped

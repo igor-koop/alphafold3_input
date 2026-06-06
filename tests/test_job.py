@@ -3,15 +3,18 @@
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING, Self
+import subprocess
+import sys
+from typing import TYPE_CHECKING, Self, cast
 
 import pytest
 from pydantic import ValidationError
 
+import alphafold3_input.job as job_module
 from alphafold3_input import Modification
 from alphafold3_input.bond import Atom, Bond
 from alphafold3_input.dna import DNA
-from alphafold3_input.job import Dialect, Job, Version
+from alphafold3_input.job import JSON_SCHEMA_URL, Dialect, Job, Version
 from alphafold3_input.ligand import Ligand
 from alphafold3_input.protein import Protein
 from alphafold3_input.rna import RNA
@@ -19,6 +22,33 @@ from alphafold3_input.template import Template
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+
+class TestExports:
+    """Tests for the job module exports."""
+
+    def test_exports_match(self: Self) -> None:
+        """Validate the exported job module namespace."""
+        expected: set[str] = {
+            "Dialect",
+            "JSON_SCHEMA_URL",
+            "Job",
+            "Version",
+        }
+        assert set(job_module.__all__) == expected
+
+    def test_import_suppresses_warnings(self: Self) -> None:
+        """Validate that importing the job module emits no user warnings."""
+        subprocess.run(
+            [
+                sys.executable,
+                "-W",
+                "error::UserWarning",
+                "-c",
+                "from alphafold3_input.job import Job",
+            ],
+            check=True,
+        )
 
 
 class TestDialect:
@@ -51,16 +81,31 @@ class TestJob:
         assert job.name == "example"
         assert job.dialect == Dialect.LOCAL
         assert job.version == Version.IV
+        assert job.schema == JSON_SCHEMA_URL
         assert isinstance(job.seeds, tuple)
         assert len(job.seeds) == 1
         assert job.entities == ()
         assert job.bonds is None
         assert job.ccd is None
 
+    def test_validate_schema_assignment(self: Self) -> None:
+        """Validate JSON Schema URI assignment."""
+        job: Job = Job.model_validate(
+            {
+                "name": "example",
+                "schema": "./schema.json",
+            },
+        )
+        assert job.schema == "./schema.json"
+
+        job.schema = "./alphafold3-input.schema.json"
+        assert job.schema == "./alphafold3-input.schema.json"
+
     def test_construct_aliases(self: Self) -> None:
         """Validate construction from AlphaFold 3 field aliases."""
         job: Job = Job.model_validate(
             {
+                "$schema": "./alphafold3-input.schema.json",
                 "name": "example",
                 "modelSeeds": [1, 2, 3],
                 "sequences": [
@@ -79,6 +124,8 @@ class TestJob:
             },
         )
 
+        assert job.schema == "./alphafold3-input.schema.json"
+        assert job.schema == "./alphafold3-input.schema.json"
         assert job.name == "example"
         assert job.seeds == [1, 2, 3]
         assert len(job.entities) == 1
@@ -283,9 +330,11 @@ class TestJob:
         )
 
         data: dict[str, object] = job.export()
+        assert "modelSeeds" in data
+        assert isinstance(data["modelSeeds"], tuple)
+        assert all(isinstance(elem, int) for elem in data["modelSeeds"])
 
-        seeds: object = data["modelSeeds"]
-        assert isinstance(seeds, tuple)
+        seeds: tuple[int, ...] = cast("tuple[int, ...]", data["modelSeeds"])
         assert len(seeds) == 3
         assert all(isinstance(seed, int) for seed in seeds)
         assert all(1 <= seed <= (1 << 32) - 1 for seed in seeds)
@@ -304,6 +353,7 @@ class TestJob:
         assert data["version"] == Version.IV
         assert "modelSeeds" in data
         assert "sequences" in data
+        assert "$schema" not in data
         assert "bondedAtomPairs" not in data
         assert "userCCD" not in data
         assert "userCCDPath" not in data
@@ -331,11 +381,26 @@ class TestJob:
         data: dict = json.loads(path.read_text())
 
         assert job.name == data["name"]
+        assert "$schema" not in data
         assert job.dialect == data["dialect"]
         assert job.version == data["version"]
         assert job.seeds == data["modelSeeds"]
         assert len(job.entities) == len(data["sequences"])
         assert job.entities[0] == Protein(**data["sequences"][0])
+
+    def test_save_schema(self: Self, tmp_path: Path) -> None:
+        """Validate saving a job with the JSON Schema URI."""
+        path: Path = tmp_path / "job.json"
+        job: Job = Job(
+            name="example",
+            seeds=[1],
+            entities=[Protein(id="A", sequence="ACDE")],
+        )
+
+        job.save(path, schema=True)
+        data: dict = json.loads(path.read_text())
+
+        assert data["$schema"] == JSON_SCHEMA_URL
 
     def test_load(self: Self, tmp_path: Path) -> None:
         """Validate loading a job from an AlphaFold 3 input JSON."""

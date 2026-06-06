@@ -5,6 +5,7 @@ input configuration for local execution. It also provides :class:`Dialect`
 and :class:`Version` enums for selecting the input format.
 
 Exports:
+    - :data:`JSON_SCHEMA_URL`: Canonical JSON Schema URL.
     - :class:`Dialect`: AlphaFold input dialect enum.
     - :class:`Version`: AlphaFold 3 input format version enum.
     - :class:`Job`: Complete AlphaFold 3 job input model.
@@ -12,11 +13,13 @@ Exports:
 
 from __future__ import annotations
 
+import json
 import random
+import warnings
 from collections.abc import Mapping, Sequence
 from enum import IntEnum, StrEnum
 from pathlib import Path
-from typing import Annotated, Any, Self
+from typing import Annotated, Any, Final, Self
 
 from pydantic import (
     AliasChoices,
@@ -38,10 +41,24 @@ from .rna import RNA
 from .utils import base26_decoder, base26_encoder
 
 __all__: list[str] = [
+    "JSON_SCHEMA_URL",
     "Dialect",
     "Job",
     "Version",
 ]
+
+
+JSON_SCHEMA_URL: Final[str] = (
+    "https://cdn.jsdelivr.net/gh/igor-koop/alphafold3_input@main/"
+    "alphafold3-input.schema.json"
+)
+"""Canonical JSON schema URL for AlphaFold 3 input files.
+
+Use :meth:`Job.save` with ``schema=True`` to include this URL as the top-level
+``$schema`` field for editor validation. The upstream AlphaFold 3 parser rejects
+unknown top-level keys, so keep the default ``schema=False`` for runnable input
+files.
+"""
 
 
 class Dialect(StrEnum):
@@ -70,6 +87,17 @@ class Version(IntEnum):
     """Input format version 4."""
 
 
+__warning_filters: Any = warnings.filters[:]
+warnings.filterwarnings(
+    "ignore",
+    message=(
+        r"^Field name \"schema\" in \"Job\" shadows an attribute "
+        r"in parent \"BaseModel\"$"
+    ),
+    category=UserWarning,
+)
+
+
 class Job(BaseModel):
     """AlphaFold 3 job specification.
 
@@ -87,6 +115,7 @@ class Job(BaseModel):
 
     Attributes:
         name (str): Job name.
+        schema (str): JSON Schema URI for editor validation.
         dialect (Dialect): Input format dialect.
         version (Version): Input format version.
         seeds (int | Sequence[int]): Random seeds or their total number.
@@ -142,6 +171,17 @@ class Job(BaseModel):
         serialization_alias="name",
     )
     """Job name."""
+
+    schema: str = Field(
+        title="schema",
+        alias="schema",
+        description="JSON Schema URI for editor validation.",
+        validation_alias=AliasChoices("$schema", "schema"),
+        exclude=True,
+        repr=False,
+        default=JSON_SCHEMA_URL,
+    )
+    """JSON Schema URI for editor validation."""
 
     dialect: Dialect = Field(
         title="dialect",
@@ -332,6 +372,7 @@ class Job(BaseModel):
         indent: int | None = 2,
         ensure_ascii: bool = False,
         encoding: str = "utf-8",
+        schema: bool = False,
     ) -> Path:
         """Save the job to an AlphaFold 3 input file.
 
@@ -341,15 +382,22 @@ class Job(BaseModel):
             ensure_ascii (bool): Whether to escape non-ASCII characters in the
                 JSON output.
             encoding (str): Text encoding used to write the file.
+            schema (bool): Whether to include the JSON Schema URI.
 
         Returns:
             Path: The written path.
         """
         file = Path(path)
+        data: dict[str, Any] = self.model_dump(
+            by_alias=True,
+            exclude_none=True,
+            mode="json",
+        )
+        if schema:
+            data["$schema"] = self.schema
         file.write_text(
-            self.model_dump_json(
-                by_alias=True,
-                exclude_none=True,
+            json.dumps(
+                data,
                 indent=indent,
                 ensure_ascii=ensure_ascii,
             ),
@@ -511,3 +559,7 @@ class Job(BaseModel):
                 random.getrandbits(32) or 1 for _ in range(value)
             )
         return value
+
+
+warnings.filters = __warning_filters
+del __warning_filters

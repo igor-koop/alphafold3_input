@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Self
+from typing import Self, cast
 
 import pytest
 from pydantic import ValidationError
@@ -154,11 +154,13 @@ class TestLigand:
             by_alias=True,
             exclude_none=True,
         )
-
         assert "ligand" in data
         assert isinstance(data["ligand"], dict)
-        assert data["ligand"]["description"] == "Adenosine triphosphate"
-        assert data["ligand"]["ccdCodes"] == ["ATP"]
+        assert all(isinstance(key, str) for key in data["ligand"])
+
+        wrapped: dict[str, object] = cast("dict[str, object]", data["ligand"])
+        assert wrapped["description"] == "Adenosine triphosphate"
+        assert wrapped["ccdCodes"] == ["ATP"]
         assert "smiles" not in data["ligand"]
         assert "id" not in data["ligand"]
         assert "copies" not in data["ligand"]
@@ -175,11 +177,13 @@ class TestLigand:
             by_alias=True,
             exclude_none=True,
         )
-
         assert "ligand" in data
         assert isinstance(data["ligand"], dict)
-        assert data["ligand"]["id"] == ["LIG"]
-        assert data["ligand"]["description"] == "Aceclidine"
-        assert data["ligand"]["smiles"] == "CC(=O)OC1C[NH+]2CCC1CC2"
+        assert all(isinstance(key, str) for key in data["ligand"])
+
+        wrapped: dict[str, object] = cast("dict[str, object]", data["ligand"])
+        assert wrapped["id"] == ["LIG"]
+        assert wrapped["description"] == "Aceclidine"
+        assert wrapped["smiles"] == "CC(=O)OC1C[NH+]2CCC1CC2"
         assert "ccdCodes" not in data["ligand"]
         assert "copies" not in data["ligand"]

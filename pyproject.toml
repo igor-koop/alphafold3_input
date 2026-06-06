@@ -1,6 +1,6 @@
 [project]
 name = "alphafold3_input"
-version = "0.2.0"
+version = "0.3.0"
 description = "AlphaFold 3 input schema models."
 authors = [
     { name = "Igor Koop" },
@@ -8,8 +8,27 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "pydantic>=2.12.5",
-    "rdkit>=2025.9.4",
+    "pydantic>=2.13.4",
+    "rdkit>=2026.3.3",
+]
+keywords = [
+    "alphafold3",
+    "pydantic",
+    "bioinformatics",
+    "job-definition",
+    "input-generation",
+    "json",
+    "json-schema",
+]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.12",
+  "License :: OSI Approved :: MIT License",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering :: Bio-Informatics",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Typing :: Typed",
 ]
 
 [project.urls]
@@ -30,10 +49,10 @@ dev = [
     "furo>=2025.12.19",
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",
-    "ruff>=0.15.7",
+    "ruff>=0.15.16",
     "sphinx>=9.1.0",
     "sphinx-autobuild>=2025.8.25",
-    "ty>=0.0.24",
+    "ty>=0.0.44",
 ]
 
 [tool.ruff]
@@ -63,7 +82,7 @@ addopts = [
     "--strict-markers",
     "--cov=alphafold3_input",
     "--cov-report=term-missing",
-    "--cov-fail-under=90",
+    "--cov-fail-under=100",
 ]
 
 [tool.coverage.run]
