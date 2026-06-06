@@ -30,6 +30,7 @@ def test_exports_match() -> None:
     """Validate that the metadata exports match the expected ones."""
     expected: set[str] = {
         "__author__",
+        "__changelog__",
         "__description__",
         "__documentation__",
         "__issues__",

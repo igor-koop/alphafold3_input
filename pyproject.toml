@@ -1,6 +1,6 @@
 [project]
 name = "alphafold3_input"
-version = "0.3.0"
+version = "0.3.1"
 description = "AlphaFold 3 input schema models."
 authors = [
     { name = "Igor Koop" },
@@ -33,8 +33,9 @@ classifiers = [
 
 [project.urls]
 Repository = "https://github.com/igor-koop/alphafold3_input"
+Documentation = "https://igor-koop.github.io/alphafold3_input/"
+Changelog = "https://github.com/igor-koop/alphafold3_input/releases"
 Issues = "https://github.com/igor-koop/alphafold3_input/issues"
-Documentation = "https://github.com/igor-koop/alphafold3_input#readme"
 
 [build-system]
 requires = ["uv_build>=0.8.11,<0.9.0"]

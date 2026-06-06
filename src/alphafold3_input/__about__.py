@@ -11,6 +11,7 @@ Exports:
     - :data:`__module_name__`: Import path.
     - :data:`__repository__`: Repository URL.
     - :data:`__documentation__`: Documentation URL.
+    - :data:`__changelog__`: Changelog URL.
     - :data:`__issues__`: Issue tracker URL.
 """
 
@@ -18,6 +19,7 @@ from importlib.metadata import PackageMetadata, metadata, version
 
 __all__: list[str] = [
     "__author__",
+    "__changelog__",
     "__description__",
     "__documentation__",
     "__issues__",
@@ -58,6 +60,9 @@ __documentation__: str = ""
 __issues__: str = ""
 """Issue tracker URL."""
 
+__changelog__: str = ""
+"""Changelog URL."""
+
 for item in __metadata__.json.get("project_url", []):
     label, url = item.split(", ", 1)
     match label:
@@ -67,3 +72,5 @@ for item in __metadata__.json.get("project_url", []):
             __documentation__ = url
         case "Issues":
             __issues__ = url
+        case "Changelog":
+            __changelog__ = url
