@@ -281,9 +281,9 @@ def component(
 ) -> Chem.Mol:
     """Construct an embedded chemical component from SMILES for CCD export.
 
-    Parses ``smiles`` and sanitizes the molecule, adds explicit hydrogens,
-    embeds a 3D conformer, optimizes its geometry, assigns deterministic atom
-    names, and stores component metadata required for CCD export.
+    Parses ``smiles`` and sanitizes the molecule, embeds a 3D conformer,
+    optimizes its geometry, assigns deterministic atomcnames, and stores
+    component metadata required for CCD export.
 
     Args:
         smiles (str): SMILES string describing a chemical component.
@@ -323,8 +323,6 @@ def component(
             f"chemically valid structure (smiles={smiles})."
         )
         raise ValueError(msg)
-
-    molecule: Chem.Mol = Chem.AddHs(mol=molecule)
 
     molecule.SetProp("comp_id", code)
     molecule.SetProp("comp_name", f"{name}")

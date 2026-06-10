@@ -1,6 +1,6 @@
 [project]
 name = "alphafold3_input"
-version = "0.3.1"
+version = "0.3.2"
 description = "AlphaFold 3 input schema models."
 authors = [
     { name = "Igor Koop" },
