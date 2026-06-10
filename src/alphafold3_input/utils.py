@@ -324,6 +324,8 @@ def component(
         )
         raise ValueError(msg)
 
+    molecule: Chem.Mol = Chem.AddHs(mol=molecule)
+
     molecule.SetProp("comp_id", code)
     molecule.SetProp("comp_name", f"{name}")
     molecule.SetProp("comp_smiles", smiles)
@@ -334,12 +336,6 @@ def component(
         element: str = atom.GetSymbol().upper()
         atoms[element] += 1
         atom.SetProp("atom_name", f"{element}{atoms[element]}")
-
-    if any(
-        bond.GetBondType() == Chem.BondType.AROMATIC
-        for bond in molecule.GetBonds()
-    ):
-        Chem.Kekulize(mol=molecule, clearAromaticFlags=True)
 
     parameters: rdDistGeom.EmbedParameters = AllChem.ETKDGv3()  # ty:ignore[unresolved-attribute]
     parameters.maxIterations = 500
@@ -354,6 +350,14 @@ def component(
         raise RuntimeError(msg)
 
     AllChem.UFFOptimizeMolecule(molecule, maxIters=500)  # ty:ignore[unresolved-attribute]
+
+    molecule: Chem.Mol = Chem.RemoveHs(mol=molecule)
+
+    if any(
+        bond.GetBondType() == Chem.BondType.AROMATIC
+        for bond in molecule.GetBonds()
+    ):
+        Chem.Kekulize(mol=molecule, clearAromaticFlags=True)
 
     return molecule
 

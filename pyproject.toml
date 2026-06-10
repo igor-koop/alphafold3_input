@@ -1,6 +1,6 @@
 [project]
 name = "alphafold3_input"
-version = "0.3.2"
+version = "0.3.3"
 description = "AlphaFold 3 input schema models."
 authors = [
     { name = "Igor Koop" },
@@ -48,12 +48,12 @@ module-name = "alphafold3_input"
 [dependency-groups]
 dev = [
     "furo>=2025.12.19",
-    "pytest>=9.0.2",
-    "pytest-cov>=7.0.0",
+    "pytest>=9.0.3",
+    "pytest-cov>=7.1.0",
     "ruff>=0.15.16",
     "sphinx>=9.1.0",
     "sphinx-autobuild>=2025.8.25",
-    "ty>=0.0.44",
+    "ty>=0.0.46",
 ]
 
 [tool.ruff]
